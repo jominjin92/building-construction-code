@@ -1,4 +1,4 @@
 streamlit>=1.18.1
 pandas
-openai
+openai>=0.27.0
 schedule
