@@ -656,14 +656,14 @@ if st.session_state.user_role == "admin":
 with tab3:
     if st.session_state.user_role == "admin":
         st.subheader("전체 통계 및 대시보드")
-        source_filter_dashboard = st.selectbox("문제 출처(유형) 필터", 
-                                                 ["전체", "건축기사 기출문제", "건축시공 기출문제"], key="filter_tab3_admin")
-        problems_all = get_all_problems_dict()
-        if source_filter_dashboard != "전체":
-            problems_all = [p for p in problems_all if p["유형"] == source_filter_dashboard]
-        # (전체 통계 코드 이어짐)
+        source_filter_dashboard = st.selectbox(
+            "문제 출처(유형) 필터",
+            ["전체", "건축기사 기출문제", "건축시공 기출문제"],
+            key="filter_tab3_admin"
+        )
     else:
         st.subheader("개인 통계 및 대시보드")
+        source_filter_dashboard = "전체"  # 일반 사용자는 기본적으로 전체 기록을 보여줌.
         user_id = st.session_state.username
         def get_personal_stats(user_id):
             conn = sqlite3.connect("problems.db")
@@ -687,6 +687,7 @@ with tab3:
         else:
             st.info("개인 문제풀이 기록이 없습니다.")
     
+    # 공통 통계 코드 (관리자와 사용자 모두 적용)
     problems_all = get_all_problems_dict()
     if source_filter_dashboard != "전체":
         problems_all = [p for p in problems_all if p["유형"] == source_filter_dashboard]
