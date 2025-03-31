@@ -15,11 +15,10 @@ logging.basicConfig(level=logging.INFO, force=True)
 # ---------------------
 # 1) API 키 설정
 # ---------------------
-try:
+if "OPENAI_API_KEY" in st.secrets:
     openai.api_key = st.secrets["OPENAI_API_KEY"]
-except Exception as e:
-    logging.error("API key not found: %s", e)
-    st.error("API key 설정 오류: API key가 없습니다.")
+else:
+    st.error("API key 설정 오류: secrets.toml에 OPENAI_API_KEY가 없습니다.")
     st.stop()
 
 # ---------------------
@@ -356,6 +355,33 @@ def update_problem_in_db(problem_id, updated_problem, db_path="problems.db"):
     ))
     conn.commit()
     conn.close()
+
+# ---------------------
+# 로그인 기능 추가
+# ---------------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+def login(username, password):
+    # 데모용 사용자 정보: 실제로는 데이터베이스나 외부 인증 시스템을 사용하는 것이 좋습니다.
+    credentials = {
+        "admin": "1234",
+        "user1": "pass1"
+    }
+    return credentials.get(username) == password
+
+if not st.session_state.logged_in:
+    st.title("로그인")
+    username = st.text_input("사용자 이름")
+    password = st.text_input("비밀번호", type="password")
+    if st.button("로그인"):
+        if login(username, password):
+            st.session_state.logged_in = True
+            st.success("로그인 성공!")
+            st.experimental_rerun()  # 로그인 후 전체 앱을 다시 실행하여 UI 표시
+        else:
+            st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
+    st.stop()  # 로그인하지 않으면 아래 UI는 실행되지 않음
 
 # ---------------------
 # 6) UI (탭)
