@@ -149,6 +149,7 @@ def create_attempts_table(db_path="problems.db"):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT,
             problem_id INTEGER,
+            user_answer TEXT,   -- 추가된 컬럼: 사용자가 선택한 답안
             is_correct INTEGER,
             attempt_time DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -158,11 +159,11 @@ def create_attempts_table(db_path="problems.db"):
 
 create_attempts_table("problems.db")
 
-def record_attempt(user_id, problem_id, is_correct, db_path="problems.db"):
+def record_attempt(user_id, problem_id, user_answer, is_correct, db_path="problems.db"):
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-    c.execute("INSERT INTO attempts (user_id, problem_id, is_correct) VALUES (?, ?, ?)",
-              (user_id, problem_id, is_correct))
+    c.execute("INSERT INTO attempts (user_id, problem_id, user_answer, is_correct) VALUES (?, ?, ?, ?)",
+              (user_id, problem_id, user_answer, is_correct))
     conn.commit()
     conn.close()
 
@@ -219,6 +220,26 @@ def get_difficulty_stats():
 def get_all_attempts():
     conn = sqlite3.connect("problems.db")
     df = pd.read_sql_query("SELECT * FROM attempts ORDER BY attempt_time DESC", conn)
+    conn.close()
+    return df
+
+def get_detailed_attempts():
+    conn = sqlite3.connect("problems.db")
+    query = """
+    SELECT 
+        a.id,
+        a.user_id,
+        a.problem_id,
+        p.question,
+        p.answer AS correct_answer,
+        a.user_answer,
+        a.is_correct,
+        a.attempt_time
+    FROM attempts a
+    JOIN problems p ON a.problem_id = p.id
+    ORDER BY a.attempt_time DESC;
+    """
+    df = pd.read_sql_query(query, conn)
     conn.close()
     return df
 
@@ -579,7 +600,7 @@ with tab1:
             problem_id = prob.get("id", 0)
             # 로그인 기능이 있으므로 사용자 ID는 st.session_state["username"]
             user_id = st.session_state.get("username", "guest")
-            record_attempt(user_id, problem_id, is_correct)
+            record_attempt(user_id, problem_id, user_choice, is_correct)
     
             explanation = prob.get("해설", {})
             if isinstance(explanation, str):
@@ -667,8 +688,7 @@ if st.session_state.user_role == "admin":
 
 # --- 통계 및 대시보드 ---
 with tab3:
-    # 관리자와 일반 사용자 모두에서 사용할 기본 필터값 정의
-    source_filter_dashboard = "전체"
+    # 관리자와 일반 사용자 모두 사용할 기본 필터 변수 선언
     if st.session_state.user_role == "admin":
         st.subheader("전체 통계 및 대시보드")
         source_filter_dashboard = st.selectbox(
@@ -678,7 +698,9 @@ with tab3:
         )
     else:
         st.subheader("개인 통계 및 대시보드")
+        source_filter_dashboard = "전체"  # 일반 사용자는 전체 기록으로 고정
         user_id = st.session_state.username
+        # 개인 통계 함수 호출
         def get_personal_stats(user_id):
             conn = sqlite3.connect("problems.db")
             query = """
@@ -701,7 +723,7 @@ with tab3:
         else:
             st.info("개인 문제풀이 기록이 없습니다.")
     
-    # 공통 통계 코드 (관리자와 일반 사용자 모두 사용)
+    # 공통 통계 (관리자와 일반 사용자 모두 표시)
     problems_all = get_all_problems_dict()
     if source_filter_dashboard != "전체":
         problems_all = [p for p in problems_all if p["유형"] == source_filter_dashboard]
@@ -748,10 +770,10 @@ with tab3:
         else:
             st.info("난이도별 문제풀이 기록이 없습니다.")
         
-        st.subheader("전체 문제풀이 시도 기록")
-        attempts_df = get_all_attempts()
-        if not attempts_df.empty:
-            st.dataframe(attempts_df)
+        st.subheader("전체 문제풀이 시도 기록 (상세)")
+        detailed_attempts = get_detailed_attempts()  # 이 함수는 시도 상세 정보를 반환합니다.
+        if not detailed_attempts.empty:
+            st.dataframe(detailed_attempts)
         else:
             st.info("문제풀이 시도 기록이 없습니다.")
     else:
