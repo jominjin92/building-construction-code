@@ -22,6 +22,48 @@ else:
     st.stop()
 
 # ---------------------
+# 로그인 기능 추가
+# ---------------------
+# 만약 "logged_in"이나 "username" 키가 없다면 기본값을 설정합니다.
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
+if "user_role" not in st.session_state:
+    st.session_state["user_role"] = "user"  # 기본값은 사용자
+if "username" not in st.session_state:
+    st.session_state["username"] = "guest"  # 로그인 전 기본값
+
+def login(username, password):
+    # 데모용 사용자 정보: 관리자 1개, 사용자 4개
+    # 관리자 계정은 "admin", 그 외는 일반 사용자
+    credentials = {
+        "admin": "1234",   # 관리자 계정
+        "user1": "pass1",  # 사용자 계정 1
+        "user2": "pass2",  # 사용자 계정 2
+        "user3": "pass3",  # 사용자 계정 3
+        "user4": "pass4"   # 사용자 계정 4
+    }
+    return credentials.get(username) == password
+
+# ---------------------
+# 로그인 UI
+# ---------------------
+if not st.session_state["logged_in"]:
+    st.title("로그인")
+    username = st.text_input("사용자 이름")
+    password = st.text_input("비밀번호", type="password")
+    if st.button("로그인"):
+        if login(username, password):
+            st.session_state["logged_in"] = True
+            st.session_state["username"] = username
+            st.session_state["user_role"] = "admin" if username == "admin" else "user"
+            st.success("로그인 성공!")
+            # 최신 기능을 사용하려면 아래 주석을 해제 (업그레이드한 Streamlit 버전에서 가능)
+            # st.experimental_rerun()
+        else:
+            st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
+        st.stop()  # 로그인 후 아래 UI는 실행되지 않음
+
+# ---------------------
 # 2) CSV 파일 로드
 # ---------------------
 uploaded_file = st.file_uploader("CSV 파일을 업로드하세요", type="csv")
@@ -440,40 +482,6 @@ def update_problem_in_db(problem_id, updated_problem, db_path="problems.db"):
     ))
     conn.commit()
     conn.close()
-
-# ---------------------
-# 로그인 기능 추가
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "user_role" not in st.session_state:
-    st.session_state.user_role = "user"  # 기본값은 사용자
-
-def login(username, password):
-    # 데모용 사용자 정보: 관리자 1개, 사용자 4개
-    # 관리자 계정은 "admin", 그 외는 일반 사용자
-    credentials = {
-        "admin": "1234",   # 관리자 계정
-        "user1": "pass1",  # 사용자 계정 1
-        "user2": "pass2",  # 사용자 계정 2
-        "user3": "pass3",  # 사용자 계정 3
-        "user4": "pass4"   # 사용자 계정 4
-    }
-    return credentials.get(username) == password
-
-if not st.session_state.logged_in:
-    st.title("로그인")
-    username = st.text_input("사용자 이름")
-    password = st.text_input("비밀번호", type="password")
-    if st.button("로그인"):
-        if login(username, password):
-            st.session_state.logged_in = True
-            st.session_state.username = username
-            st.session_state.user_role = "admin" if username == "admin" else "user"
-            st.success("로그인 성공!")
-            # st.experimental_rerun()  # 최신 버전으로 업그레이드할 때 활성화 가능
-        else:
-            st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
-        st.stop()  # 로그인 후 아래 UI는 실행되지 않음
 
 # ---------------------
 # 6) UI (탭)
