@@ -470,10 +470,10 @@ if not st.session_state.logged_in:
             st.session_state.username = username
             st.session_state.user_role = "admin" if username == "admin" else "user"
             st.success("로그인 성공!")
-            # st.experimental_rerun()  # 최신 버전을 사용하지 않는 경우 주석 처리
+            # st.experimental_rerun()  # 최신 버전으로 업그레이드할 때 활성화 가능
         else:
             st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
-        st.stop()  # 로그인하지 않으면 이후 UI가 실행되지 않음
+        st.stop()  # 로그인 후 아래 UI는 실행되지 않음
 
 # ---------------------
 # 6) UI (탭)
@@ -647,7 +647,9 @@ if st.session_state.user_role == "admin":
             st.info("해당 출처(유형)에 해당하는 문제가 없습니다.")
 
 # --- 통계 및 대시보드 ---
-with tab3:
+ith tab3:
+    # 관리자와 일반 사용자 모두에서 사용할 기본 필터값 정의
+    source_filter_dashboard = "전체"
     if st.session_state.user_role == "admin":
         st.subheader("전체 통계 및 대시보드")
         source_filter_dashboard = st.selectbox(
@@ -657,7 +659,6 @@ with tab3:
         )
     else:
         st.subheader("개인 통계 및 대시보드")
-        source_filter_dashboard = "전체"  # 일반 사용자는 필터 없이 전체 기록을 기본으로 표시
         user_id = st.session_state.username
         def get_personal_stats(user_id):
             conn = sqlite3.connect("problems.db")
