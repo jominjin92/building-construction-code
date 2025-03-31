@@ -114,6 +114,62 @@ def record_attempt(user_id, problem_id, is_correct, db_path="problems.db"):
     conn.close()
 
 # ---------------------
+# 통계 및 대시보드 새로운 집계 추가
+# ---------------------
+def get_chapter_accuracy():
+    conn = sqlite3.connect("problems.db")
+    query = """
+    SELECT 
+        p.chapter,
+        COUNT(a.id) AS total_attempts,
+        SUM(a.is_correct) AS correct_attempts,
+        ROUND(AVG(a.is_correct)*100, 2) AS accuracy_percentage
+    FROM attempts a
+    JOIN problems p ON a.problem_id = p.id
+    GROUP BY p.chapter;
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+def get_user_stats():
+    conn = sqlite3.connect("problems.db")
+    query = """
+    SELECT 
+        user_id,
+        COUNT(*) AS total_attempts,
+        SUM(is_correct) AS correct_attempts,
+        ROUND(AVG(is_correct)*100, 2) AS accuracy_percentage
+    FROM attempts
+    GROUP BY user_id;
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+def get_difficulty_stats():
+    conn = sqlite3.connect("problems.db")
+    query = """
+    SELECT 
+        p.difficulty,
+        COUNT(a.id) AS total_attempts,
+        SUM(a.is_correct) AS correct_attempts,
+        ROUND(AVG(a.is_correct)*100, 2) AS accuracy_percentage
+    FROM attempts a
+    JOIN problems p ON a.problem_id = p.id
+    GROUP BY p.difficulty;
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+def get_all_attempts():
+    conn = sqlite3.connect("problems.db")
+    df = pd.read_sql_query("SELECT * FROM attempts ORDER BY attempt_time DESC", conn)
+    conn.close()
+    return df
+
+# ---------------------
 # 4) 문제 생성/저장 함수들
 # ---------------------
 def generate_variation_question(df):
@@ -384,14 +440,21 @@ def update_problem_in_db(problem_id, updated_problem, db_path="problems.db"):
 # ---------------------
 # 로그인 기능 추가
 # ---------------------
+# 로그인 기능 추가
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+if "user_role" not in st.session_state:
+    st.session_state.user_role = "user"  # 기본값은 사용자
 
 def login(username, password):
-    # 데모용 사용자 정보: 실제로는 데이터베이스나 외부 인증 시스템을 사용하는 것이 좋습니다.
+    # 데모용 사용자 정보: 관리자 1개, 사용자 4개
+    # 관리자 계정은 "admin", 그 외는 일반 사용자
     credentials = {
-        "admin": "1234",
-        "user1": "pass1"
+        "admin": "1234",   # 관리자 계정
+        "user1": "pass1",  # 사용자 계정 1
+        "user2": "pass2",  # 사용자 계정 2
+        "user3": "pass3",  # 사용자 계정 3
+        "user4": "pass4"   # 사용자 계정 4
     }
     return credentials.get(username) == password
 
@@ -403,6 +466,11 @@ if not st.session_state.logged_in:
         if login(username, password):
             st.session_state.logged_in = True
             st.session_state.username = username
+            # 관리자 계정이면 role을 admin, 아니면 user
+            if username == "admin":
+                st.session_state.user_role = "admin"
+            else:
+                st.session_state.user_role = "user"
             st.success("로그인 성공!")
             st.experimental_rerun()  # 로그인 후 전체 앱을 다시 실행하여 UI 표시
         else:
@@ -410,67 +478,16 @@ if not st.session_state.logged_in:
     st.stop()  # 로그인하지 않으면 아래 UI는 실행되지 않음
 
 # ---------------------
-# 통계 및 대시보드 새로운 집계 추가
-# ---------------------
-def get_chapter_accuracy():
-    conn = sqlite3.connect("problems.db")
-    query = """
-    SELECT 
-        p.chapter,
-        COUNT(a.id) AS total_attempts,
-        SUM(a.is_correct) AS correct_attempts,
-        ROUND(AVG(a.is_correct)*100, 2) AS accuracy_percentage
-    FROM attempts a
-    JOIN problems p ON a.problem_id = p.id
-    GROUP BY p.chapter;
-    """
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-    return df
-
-def get_user_stats():
-    conn = sqlite3.connect("problems.db")
-    query = """
-    SELECT 
-        user_id,
-        COUNT(*) AS total_attempts,
-        SUM(is_correct) AS correct_attempts,
-        ROUND(AVG(is_correct)*100, 2) AS accuracy_percentage
-    FROM attempts
-    GROUP BY user_id;
-    """
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-    return df
-
-def get_difficulty_stats():
-    conn = sqlite3.connect("problems.db")
-    query = """
-    SELECT 
-        p.difficulty,
-        COUNT(a.id) AS total_attempts,
-        SUM(a.is_correct) AS correct_attempts,
-        ROUND(AVG(a.is_correct)*100, 2) AS accuracy_percentage
-    FROM attempts a
-    JOIN problems p ON a.problem_id = p.id
-    GROUP BY p.difficulty;
-    """
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-    return df
-
-def get_all_attempts():
-    conn = sqlite3.connect("problems.db")
-    df = pd.read_sql_query("SELECT * FROM attempts ORDER BY attempt_time DESC", conn)
-    conn.close()
-    return df
-
-# ---------------------
 # 6) UI (탭)
 # ---------------------
 st.title("건축시공학 문제 생성 및 풀이")
 
-tab1, tab2, tab3 = st.tabs(["사용자 모드", "관리자 모드", "통계 및 대시보드"])
+# 관리자는 관리자 모드와 전체 통계 탭을 모두 볼 수 있게 함
+if st.session_state.user_role == "admin":
+    tab1, tab2, tab3 = st.tabs(["사용자 모드", "관리자 모드", "전체 통계 및 대시보드"])
+else:
+    # 일반 사용자는 사용자 모드와 개인 통계만 볼 수 있도록 함
+    tab1, tab3 = st.tabs(["사용자 모드", "개인 통계 및 대시보드"])
 
 # --- 사용자 모드 ---
 with tab1:
@@ -563,8 +580,9 @@ with tab1:
         st.write(problems)
 
 # --- 관리자 모드 ---
-with tab2:
-    st.subheader("관리자 모드: 문제 검수 및 편집")
+if st.session_state.user_role == "admin":
+    with tab2:
+        st.subheader("관리자 모드: 문제 검수 및 편집")
     
     # 문제 출처 필터
     source_filter = st.selectbox("문제 출처(유형) 필터", ["전체", "건축기사 기출문제", "건축시공 기출문제"], key="filter_tab2")
@@ -630,8 +648,37 @@ with tab2:
 
 # --- 통계 및 대시보드 ---
 with tab3:
-    st.subheader("통계 및 대시보드")
-    source_filter_dashboard = st.selectbox("문제 출처(유형) 필터", ["전체", "건축기사 기출문제", "건축시공 기출문제"], key="filter_tab3")
+    if st.session_state.user_role == "admin":
+        st.subheader("전체 통계 및 대시보드")
+        # 전체 사용자 문제풀이 기록 및 집계
+        # 예: 전체 문제 개수, 문제 유형 분포, 챕터별 정답률, 사용자별 통계 등
+        # (기존 탭3 코드에 전체 통계를 보여주는 부분)
+    else:
+        st.subheader("개인 통계 및 대시보드")
+        # 로그인한 사용자 본인의 문제풀이 기록만 필터링해서 보여줌
+        user_id = st.session_state.username
+        # 예를 들어, get_user_stats()에서 user_id 필터를 적용하는 방식으로 처리할 수 있음
+        def get_personal_stats(user_id):
+            conn = sqlite3.connect("problems.db")
+            query = f"""
+            SELECT 
+                user_id,
+                COUNT(*) AS total_attempts,
+                SUM(is_correct) AS correct_attempts,
+                ROUND(AVG(is_correct)*100, 2) AS accuracy_percentage
+            FROM attempts
+            WHERE user_id = ?
+            GROUP BY user_id;
+            """
+            df = pd.read_sql_query(query, conn, params=(user_id,))
+            conn.close()
+            return df
+        personal_stats = get_personal_stats(user_id)
+        if not personal_stats.empty:
+            st.dataframe(personal_stats)
+            st.bar_chart(personal_stats.set_index("user_id")["accuracy_percentage"])
+        else:
+            st.info("개인 문제풀이 기록이 없습니다.")
     
     problems_all = get_all_problems_dict()
     if source_filter_dashboard != "전체":
