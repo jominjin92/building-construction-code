@@ -647,7 +647,7 @@ if st.session_state.user_role == "admin":
             st.info("해당 출처(유형)에 해당하는 문제가 없습니다.")
 
 # --- 통계 및 대시보드 ---
-ith tab3:
+with tab3:
     # 관리자와 일반 사용자 모두에서 사용할 기본 필터값 정의
     source_filter_dashboard = "전체"
     if st.session_state.user_role == "admin":
