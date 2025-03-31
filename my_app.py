@@ -230,7 +230,7 @@ def get_detailed_attempts():
         a.id,
         a.user_id,
         a.problem_id,
-        p.question AS problem_text,
+        p.question,
         p.answer AS correct_answer,
         a.user_answer,
         a.is_correct,
@@ -709,6 +709,7 @@ if st.session_state.user_role == "admin":
 
 # --- 통계 및 대시보드 ---
 with tab3:
+    # 관리자와 일반 사용자 모두 사용할 기본 필터 변수 선언
     if st.session_state.user_role == "admin":
         st.subheader("전체 통계 및 대시보드")
         source_filter_dashboard = st.selectbox(
@@ -720,6 +721,22 @@ with tab3:
         st.subheader("개인 통계 및 대시보드")
         source_filter_dashboard = "전체"  # 일반 사용자는 전체 기록으로 고정
         user_id = st.session_state.username
+        # 개인 통계 함수 호출
+        def get_personal_stats(user_id):
+            conn = sqlite3.connect("problems.db")
+            query = """
+            SELECT 
+                user_id,
+                COUNT(*) AS total_attempts,
+                SUM(is_correct) AS correct_attempts,
+                ROUND(AVG(is_correct)*100, 2) AS accuracy_percentage
+            FROM attempts
+            WHERE user_id = ?
+            GROUP BY user_id;
+            """
+            df = pd.read_sql_query(query, conn, params=(user_id,))
+            conn.close()
+            return df
         personal_stats = get_personal_stats(user_id)
         if not personal_stats.empty:
             st.dataframe(personal_stats)
@@ -727,7 +744,7 @@ with tab3:
         else:
             st.info("개인 문제풀이 기록이 없습니다.")
     
-    # 공통 통계 코드 (관리자와 일반 사용자 모두)
+    # 공통 통계 (관리자와 일반 사용자 모두 표시)
     problems_all = get_all_problems_dict()
     if source_filter_dashboard != "전체":
         problems_all = [p for p in problems_all if p["유형"] == source_filter_dashboard]
@@ -773,33 +790,13 @@ with tab3:
             st.bar_chart(difficulty_stats.set_index("difficulty")["accuracy_percentage"])
         else:
             st.info("난이도별 문제풀이 기록이 없습니다.")
-
-        st.subheader("문제풀이 시도 기록 (상세)")
-        if st.session_state.user_role == "admin":
-            detailed_attempts = get_detailed_attempts()
-        else:
-            detailed_attempts = get_detailed_attempts_for_user(st.session_state.username)
-
+        
+        st.subheader("전체 문제풀이 시도 기록 (상세)")
+        detailed_attempts = get_detailed_attempts()  # 이 함수는 시도 상세 정보를 반환합니다.
         if not detailed_attempts.empty:
             st.dataframe(detailed_attempts)
         else:
             st.info("문제풀이 시도 기록이 없습니다.")
-        
-        # 여기가 추가된 부분입니다.
-        if st.session_state.user_role == "admin":
-            st.subheader("전체 문제풀이 시도 기록 (상세)")
-            detailed_attempts = get_detailed_attempts()  # 전체 시도 기록 함수
-            if not detailed_attempts.empty:
-                st.dataframe(detailed_attempts)
-            else:
-                st.info("문제풀이 시도 기록이 없습니다.")
-        else:
-            st.subheader(f"{st.session_state.username} 님의 문제풀이 상세 기록")
-            detailed_attempts = get_detailed_attempts_for_user(user_id)  # 특정 사용자 기록 함수
-            if not detailed_attempts.empty:
-                st.dataframe(detailed_attempts)
-            else:
-                st.info("문제풀이 시도 기록이 없습니다.")
     else:
         st.info("저장된 문제가 없습니다.")
 
