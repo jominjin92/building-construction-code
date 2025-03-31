@@ -28,9 +28,9 @@ else:
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 if "user_role" not in st.session_state:
-    st.session_state["user_role"] = "user"  # 기본값은 사용자
+    st.session_state["user_role"] = "user"
 if "username" not in st.session_state:
-    st.session_state["username"] = "guest"  # 로그인 전 기본값
+    st.session_state["username"] = "guest"  # 기본값
 
 def login(username, password):
     # 데모용 사용자 정보: 관리자 1개, 사용자 4개
@@ -52,16 +52,27 @@ if not st.session_state["logged_in"]:
     username = st.text_input("사용자 이름")
     password = st.text_input("비밀번호", type="password")
     if st.button("로그인"):
+        # 로그인 함수 (예제에서는 데모용 사용자 정보 사용)
+        def login(username, password):
+            credentials = {
+                "admin": "1234",
+                "user1": "pass1",
+                "user2": "pass2",
+                "user3": "pass3",
+                "user4": "pass4"
+            }
+            return credentials.get(username) == password
+
         if login(username, password):
             st.session_state["logged_in"] = True
             st.session_state["username"] = username
             st.session_state["user_role"] = "admin" if username == "admin" else "user"
             st.success("로그인 성공!")
-            # 최신 기능을 사용하려면 아래 주석을 해제 (업그레이드한 Streamlit 버전에서 가능)
+            # 최신 버전에서 st.experimental_rerun()을 사용할 수 있다면 활성화
             # st.experimental_rerun()
         else:
             st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
-        st.stop()  # 로그인 후 아래 UI는 실행되지 않음
+    st.stop()  # 로그인되지 않은 경우 아래의 코드는 실행되지 않음
 
 # ---------------------
 # 2) CSV 파일 로드
