@@ -584,14 +584,13 @@ with tab1:
 
 # --- 관리자 모드 ---
 if st.session_state.user_role == "admin":
-    with tab2:
-        st.subheader("관리자 모드: 문제 검수 및 편집")
-    
-    # 문제 출처 필터
-    source_filter_dashboard = st.selectbox("문제 출처(유형) 필터", ["전체", "건축기사 기출문제", "건축시공 기출문제"], key="filter_tab3")
-    problems = get_all_problems_dict()
-    if source_filter_dashboard != "전체":
-        problems_all = [p for p in problems_all if p["유형"] == source_filter_dashboard]
+    # 관리자 전용 코드
+    source_filter_dashboard = st.selectbox(
+        "문제 출처(유형) 필터",
+        ["전체", "건축기사 기출문제", "건축시공 기출문제"],
+        key="filter_tab3"
+    )
+    problems_all = [p for p in problems_all if p["유형"] == source_filter_dashboard]
     
     if problems:
         problem_options = {f"{p['id']} - {p['question'][:30]}": p for p in problems}
