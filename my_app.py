@@ -584,74 +584,73 @@ with tab1:
 
 # --- 관리자 모드 ---
 if st.session_state.user_role == "admin":
-if st.session_state.user_role == "admin":
     with tab2:
         st.subheader("관리자 모드: 문제 검수 및 편집")
-    
-    problems = get_all_problems_dict()  # 관리자 모드에서는 문제 목록을 가져옵니다.
-    source_filter_dashboard = st.selectbox(
-        "문제 출처(유형) 필터",
-        ["전체", "건축기사 기출문제", "건축시공 기출문제"],
-        key="filter_tab3"
-    )
-    if source_filter_dashboard != "전체":
-        problems = [p for p in problems if p["유형"] == source_filter_dashboard]
-    
-    if problems:
-        problem_options = {f"{p['id']} - {p['question'][:30]}": p for p in problems}
-        selected_key = st.selectbox("편집할 문제를 선택하세요:", list(problem_options.keys()))
-        selected_problem = problem_options[selected_key]
         
-        st.write("선택된 문제:", selected_problem)
+        problems = get_all_problems_dict()  # 문제 목록을 가져옴
+        source_filter_dashboard = st.selectbox(
+            "문제 출처(유형) 필터",
+            ["전체", "건축기사 기출문제", "건축시공 기출문제"],
+            key="filter_tab3"
+        )
+        if source_filter_dashboard != "전체":
+            problems = [p for p in problems if p["유형"] == source_filter_dashboard]
         
-        # 편집 UI
-        edited_question = st.text_area("문제", value=selected_problem["question"])
-        edited_choice1 = st.text_input("선택지1", value=selected_problem["choice1"])
-        edited_choice2 = st.text_input("선택지2", value=selected_problem["choice2"])
-        edited_choice3 = st.text_input("선택지3", value=selected_problem["choice3"])
-        edited_choice4 = st.text_input("선택지4", value=selected_problem["choice4"])
-        
-        valid_types = ["건축기사 기출문제", "건축시공 기출문제"]
-        db_value = selected_problem["유형"].strip()
-        if db_value not in valid_types:
-           db_value = "건축기사 기출문제"
-        default_index = valid_types.index(db_value)
-        
-        edited_type = st.selectbox("문제 유형", valid_types, index=default_index)
-        
-        if edited_type == "건축기사 기출문제":
-            # 객관식
-            try:
-                default_answer_int = int(selected_problem["answer"])
-            except:
-                default_answer_int = 1
-            new_answer = st.number_input("정답 (1~4)", min_value=1, max_value=4, value=default_answer_int)
-            edited_answer = str(new_answer)
+        if problems:
+            problem_options = {f"{p['id']} - {p['question'][:30]}": p for p in problems}
+            selected_key = st.selectbox("편집할 문제를 선택하세요:", list(problem_options.keys()))
+            selected_problem = problem_options[selected_key]
+            
+            st.write("선택된 문제:", selected_problem)
+            
+            # 편집 UI
+            edited_question = st.text_area("문제", value=selected_problem["question"])
+            edited_choice1 = st.text_input("선택지1", value=selected_problem["choice1"])
+            edited_choice2 = st.text_input("선택지2", value=selected_problem["choice2"])
+            edited_choice3 = st.text_input("선택지3", value=selected_problem["choice3"])
+            edited_choice4 = st.text_input("선택지4", value=selected_problem["choice4"])
+            
+            valid_types = ["건축기사 기출문제", "건축시공 기출문제"]
+            db_value = selected_problem["유형"].strip()
+            if db_value not in valid_types:
+                db_value = "건축기사 기출문제"
+            default_index = valid_types.index(db_value)
+            
+            edited_type = st.selectbox("문제 유형", valid_types, index=default_index)
+            
+            if edited_type == "건축기사 기출문제":
+                # 객관식
+                try:
+                    default_answer_int = int(selected_problem["answer"])
+                except:
+                    default_answer_int = 1
+                new_answer = st.number_input("정답 (1~4)", min_value=1, max_value=4, value=default_answer_int)
+                edited_answer = str(new_answer)
+            else:
+                # 건축시공 기출문제
+                edited_answer = st.text_input("정답/모범답안", value=selected_problem["answer"])
+            
+            edited_explanation = st.text_area("해설", value=selected_problem["explanation"])
+            edited_difficulty = st.number_input("난이도 (1~5)", min_value=1, max_value=5, value=selected_problem["difficulty"])
+            edited_chapter = st.text_input("주제 (숫자)", value=selected_problem["chapter"])
+            
+            if st.button("수정 저장"):
+                updated_problem = {
+                    "question": edited_question,
+                    "choice1": edited_choice1,
+                    "choice2": edited_choice2,
+                    "choice3": edited_choice3,
+                    "choice4": edited_choice4,
+                    "answer": edited_answer,
+                    "explanation": edited_explanation,
+                    "difficulty": int(edited_difficulty),
+                    "chapter": edited_chapter,
+                    "유형": edited_type
+                }
+                update_problem_in_db(selected_problem["id"], updated_problem)
+                st.success("문제가 성공적으로 수정되었습니다!")
         else:
-            # 건축시공 기출문제
-            edited_answer = st.text_input("정답/모범답안", value=selected_problem["answer"])
-        
-        edited_explanation = st.text_area("해설", value=selected_problem["explanation"])
-        edited_difficulty = st.number_input("난이도 (1~5)", min_value=1, max_value=5, value=selected_problem["difficulty"])
-        edited_chapter = st.text_input("주제 (숫자)", value=selected_problem["chapter"])
-        
-        if st.button("수정 저장"):
-            updated_problem = {
-                "question": edited_question,
-                "choice1": edited_choice1,
-                "choice2": edited_choice2,
-                "choice3": edited_choice3,
-                "choice4": edited_choice4,
-                "answer": edited_answer,
-                "explanation": edited_explanation,
-                "difficulty": int(edited_difficulty),
-                "chapter": edited_chapter,
-                "유형": edited_type
-            }
-            update_problem_in_db(selected_problem["id"], updated_problem)
-            st.success("문제가 성공적으로 수정되었습니다!")
-    else:
-        st.info("해당 출처(유형)에 해당하는 문제가 없습니다.")
+            st.info("해당 출처(유형)에 해당하는 문제가 없습니다.")
 
 # --- 통계 및 대시보드 ---
 with tab3:
