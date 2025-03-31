@@ -221,6 +221,8 @@ def expand_question_with_gpt(base_question, base_choices, correct_answer, questi
   "선택지": ["...", "...", "...", "..."],
   "정답": "1"
 }}
+
+Please output valid JSON without any markdown formatting.
 """
     else:
         prompt = f"""
@@ -232,6 +234,8 @@ def expand_question_with_gpt(base_question, base_choices, correct_answer, questi
   "문제": "...",
   "모범답안": "..."
 }}
+
+Please output valid JSON without any markdown formatting.
 """
     messages = [
         {"role": "system", "content": "당신은 건축시공학 문제를 만드는 어시스턴트입니다."},
@@ -486,7 +490,6 @@ st.title("건축시공학 문제 생성 및 풀이")
 if st.session_state.user_role == "admin":
     tab1, tab2, tab3 = st.tabs(["사용자 모드", "관리자 모드", "전체 통계 및 대시보드"])
 else:
-    # 일반 사용자는 사용자 모드와 개인 통계만 볼 수 있도록 함
     tab1, tab3 = st.tabs(["사용자 모드", "개인 통계 및 대시보드"])
 
 # --- 사용자 모드 ---
@@ -585,10 +588,10 @@ if st.session_state.user_role == "admin":
         st.subheader("관리자 모드: 문제 검수 및 편집")
     
     # 문제 출처 필터
-    source_filter = st.selectbox("문제 출처(유형) 필터", ["전체", "건축기사 기출문제", "건축시공 기출문제"], key="filter_tab2")
+    source_filter_dashboard = st.selectbox("문제 출처(유형) 필터", ["전체", "건축기사 기출문제", "건축시공 기출문제"], key="filter_tab3")
     problems = get_all_problems_dict()
-    if source_filter != "전체":
-        problems = [p for p in problems if p["유형"] == source_filter]
+    if source_filter_dashboard != "전체":
+        problems_all = [p for p in problems_all if p["유형"] == source_filter_dashboard]
     
     if problems:
         problem_options = {f"{p['id']} - {p['question'][:30]}": p for p in problems}
@@ -650,17 +653,18 @@ if st.session_state.user_role == "admin":
 with tab3:
     if st.session_state.user_role == "admin":
         st.subheader("전체 통계 및 대시보드")
-        # 전체 사용자 문제풀이 기록 및 집계
-        # 예: 전체 문제 개수, 문제 유형 분포, 챕터별 정답률, 사용자별 통계 등
-        # (기존 탭3 코드에 전체 통계를 보여주는 부분)
+        source_filter_dashboard = st.selectbox("문제 출처(유형) 필터", 
+                                                 ["전체", "건축기사 기출문제", "건축시공 기출문제"], key="filter_tab3_admin")
+        problems_all = get_all_problems_dict()
+        if source_filter_dashboard != "전체":
+            problems_all = [p for p in problems_all if p["유형"] == source_filter_dashboard]
+        # (전체 통계 코드 이어짐)
     else:
         st.subheader("개인 통계 및 대시보드")
-        # 로그인한 사용자 본인의 문제풀이 기록만 필터링해서 보여줌
         user_id = st.session_state.username
-        # 예를 들어, get_user_stats()에서 user_id 필터를 적용하는 방식으로 처리할 수 있음
         def get_personal_stats(user_id):
             conn = sqlite3.connect("problems.db")
-            query = f"""
+            query = """
             SELECT 
                 user_id,
                 COUNT(*) AS total_attempts,
