@@ -466,19 +466,15 @@ if not st.session_state.logged_in:
     st.title("로그인")
     username = st.text_input("사용자 이름")
     password = st.text_input("비밀번호", type="password")
-    if st.button("로그인"):
-        if login(username, password):
-            st.session_state.logged_in = True
-            st.session_state.username = username
-            # 관리자 계정이면 role을 admin, 아니면 user
-            if username == "admin":
-                st.session_state.user_role = "admin"
-            else:
-                st.session_state.user_role = "user"
-            st.success("로그인 성공!")
-            st.experimental_rerun()  # 로그인 후 전체 앱을 다시 실행하여 UI 표시
-        else:
-            st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
+if st.button("로그인"):
+    if login(username, password):
+        st.session_state.logged_in = True
+        st.session_state.username = username
+        st.session_state.user_role = "admin" if username == "admin" else "user"
+        st.success("로그인 성공!")
+        # st.experimental_rerun()  # 이 줄을 주석 처리합니다.
+    else:
+        st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
     st.stop()  # 로그인하지 않으면 아래 UI는 실행되지 않음
 
 # ---------------------
@@ -663,7 +659,7 @@ with tab3:
         )
     else:
         st.subheader("개인 통계 및 대시보드")
-        source_filter_dashboard = "전체"  # 일반 사용자는 기본적으로 전체 기록을 보여줌.
+        source_filter_dashboard = "전체"  # 일반 사용자는 필터 없이 전체 기록을 기본으로 표시
         user_id = st.session_state.username
         def get_personal_stats(user_id):
             conn = sqlite3.connect("problems.db")
@@ -687,7 +683,7 @@ with tab3:
         else:
             st.info("개인 문제풀이 기록이 없습니다.")
     
-    # 공통 통계 코드 (관리자와 사용자 모두 적용)
+    # 공통 통계 코드 (관리자와 일반 사용자 모두 사용)
     problems_all = get_all_problems_dict()
     if source_filter_dashboard != "전체":
         problems_all = [p for p in problems_all if p["유형"] == source_filter_dashboard]
@@ -710,7 +706,6 @@ with tab3:
         chapter_counts = df_stats["chapter"].value_counts()
         st.bar_chart(chapter_counts)
         
-        # 추가된 통계: 챕터별 정답률 (문제풀이 시도 기반)
         st.subheader("챕터별 정답률 (문제풀이 시도 기반)")
         chapter_accuracy = get_chapter_accuracy()
         if not chapter_accuracy.empty:
@@ -719,7 +714,6 @@ with tab3:
         else:
             st.info("문제풀이 기록이 없습니다.")
         
-        # 추가된 통계: 사용자별 문제풀이 현황
         st.subheader("사용자별 문제풀이 현황")
         user_stats = get_user_stats()
         if not user_stats.empty:
@@ -728,7 +722,6 @@ with tab3:
         else:
             st.info("사용자 문제풀이 기록이 없습니다.")
         
-        # 추가된 통계: 난이도별 문제풀이 현황 (시도 기반)
         st.subheader("난이도별 문제풀이 현황 (시도 기반)")
         difficulty_stats = get_difficulty_stats()
         if not difficulty_stats.empty:
@@ -737,7 +730,6 @@ with tab3:
         else:
             st.info("난이도별 문제풀이 기록이 없습니다.")
         
-        # 선택사항: 모든 시도 기록 테이블 표시
         st.subheader("전체 문제풀이 시도 기록")
         attempts_df = get_all_attempts()
         if not attempts_df.empty:
