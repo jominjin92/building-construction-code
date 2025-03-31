@@ -88,6 +88,31 @@ def update_db_types(db_path="problems.db"):
 init_db("problems.db")
 update_db_types()
 
+def create_attempts_table(db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            problem_id INTEGER,
+            is_correct INTEGER,
+            attempt_time DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+create_attempts_table("problems.db")
+
+def record_attempt(user_id, problem_id, is_correct, db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute("INSERT INTO attempts (user_id, problem_id, is_correct) VALUES (?, ?, ?)",
+              (user_id, problem_id, is_correct))
+    conn.commit()
+    conn.close()
+
 # ---------------------
 # 4) 문제 생성/저장 함수들
 # ---------------------
@@ -377,11 +402,68 @@ if not st.session_state.logged_in:
     if st.button("로그인"):
         if login(username, password):
             st.session_state.logged_in = True
+            st.session_state.username = username
             st.success("로그인 성공!")
             st.experimental_rerun()  # 로그인 후 전체 앱을 다시 실행하여 UI 표시
         else:
             st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
     st.stop()  # 로그인하지 않으면 아래 UI는 실행되지 않음
+
+# ---------------------
+# 통계 및 대시보드 새로운 집계 추가
+# ---------------------
+def get_chapter_accuracy():
+    conn = sqlite3.connect("problems.db")
+    query = """
+    SELECT 
+        p.chapter,
+        COUNT(a.id) AS total_attempts,
+        SUM(a.is_correct) AS correct_attempts,
+        ROUND(AVG(a.is_correct)*100, 2) AS accuracy_percentage
+    FROM attempts a
+    JOIN problems p ON a.problem_id = p.id
+    GROUP BY p.chapter;
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+def get_user_stats():
+    conn = sqlite3.connect("problems.db")
+    query = """
+    SELECT 
+        user_id,
+        COUNT(*) AS total_attempts,
+        SUM(is_correct) AS correct_attempts,
+        ROUND(AVG(is_correct)*100, 2) AS accuracy_percentage
+    FROM attempts
+    GROUP BY user_id;
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+def get_difficulty_stats():
+    conn = sqlite3.connect("problems.db")
+    query = """
+    SELECT 
+        p.difficulty,
+        COUNT(a.id) AS total_attempts,
+        SUM(a.is_correct) AS correct_attempts,
+        ROUND(AVG(a.is_correct)*100, 2) AS accuracy_percentage
+    FROM attempts a
+    JOIN problems p ON a.problem_id = p.id
+    GROUP BY p.difficulty;
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+def get_all_attempts():
+    conn = sqlite3.connect("problems.db")
+    df = pd.read_sql_query("SELECT * FROM attempts ORDER BY attempt_time DESC", conn)
+    conn.close()
+    return df
 
 # ---------------------
 # 6) UI (탭)
@@ -446,16 +528,26 @@ with tab1:
                 correct_choice = prob["선택지"][correct_index - 1]
                 if user_choice.strip() == correct_choice.strip():
                     st.success("정답입니다!")
+                    is_correct = 1
                 else:
                     st.error(f"오답입니다. 정답은 '{correct_choice}'")
+                    is_correct = 0
             else:
                 # 주관식 채점
                 correct_text = prob["모범답안"]
                 if user_choice.strip() == correct_text.strip():
                     st.success("정답입니다!")
+                    is_correct = 1
                 else:
                     st.error(f"오답입니다. 모범답안: {correct_text}")
-            
+                    is_correct = 0
+
+            # 문제 풀이 시도 기록 추가 (문제 ID가 DB에 저장된 경우 사용, 없으면 0)
+            problem_id = prob.get("id", 0)
+            # 로그인 기능이 있으므로 사용자 ID는 st.session_state["username"]
+            user_id = st.session_state.get("username", "guest")
+            record_attempt(user_id, problem_id, is_correct)
+    
             explanation = prob.get("해설", {})
             if isinstance(explanation, str):
                 try:
@@ -555,12 +647,48 @@ with tab3:
         type_counts = df_stats["유형"].value_counts()
         st.bar_chart(type_counts)
         
-        st.write("난이도 분포")
+        st.write("난이도 분포 (문제 자체)")
         diff_counts = df_stats["difficulty"].value_counts().sort_index()
         st.bar_chart(diff_counts)
         
         st.write("주제 분포")
         chapter_counts = df_stats["chapter"].value_counts()
         st.bar_chart(chapter_counts)
+        
+        # 추가된 통계: 챕터별 정답률 (문제풀이 시도 기반)
+        st.subheader("챕터별 정답률 (문제풀이 시도 기반)")
+        chapter_accuracy = get_chapter_accuracy()
+        if not chapter_accuracy.empty:
+            st.dataframe(chapter_accuracy)
+            st.bar_chart(chapter_accuracy.set_index("chapter")["accuracy_percentage"])
+        else:
+            st.info("문제풀이 기록이 없습니다.")
+        
+        # 추가된 통계: 사용자별 문제풀이 현황
+        st.subheader("사용자별 문제풀이 현황")
+        user_stats = get_user_stats()
+        if not user_stats.empty:
+            st.dataframe(user_stats)
+            st.bar_chart(user_stats.set_index("user_id")["accuracy_percentage"])
+        else:
+            st.info("사용자 문제풀이 기록이 없습니다.")
+        
+        # 추가된 통계: 난이도별 문제풀이 현황 (시도 기반)
+        st.subheader("난이도별 문제풀이 현황 (시도 기반)")
+        difficulty_stats = get_difficulty_stats()
+        if not difficulty_stats.empty:
+            st.dataframe(difficulty_stats)
+            st.bar_chart(difficulty_stats.set_index("difficulty")["accuracy_percentage"])
+        else:
+            st.info("난이도별 문제풀이 기록이 없습니다.")
+        
+        # 선택사항: 모든 시도 기록 테이블 표시
+        st.subheader("전체 문제풀이 시도 기록")
+        attempts_df = get_all_attempts()
+        if not attempts_df.empty:
+            st.dataframe(attempts_df)
+        else:
+            st.info("문제풀이 시도 기록이 없습니다.")
     else:
         st.info("저장된 문제가 없습니다.")
+
