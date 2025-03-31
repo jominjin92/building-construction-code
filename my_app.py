@@ -443,8 +443,6 @@ def update_problem_in_db(problem_id, updated_problem, db_path="problems.db"):
 
 # ---------------------
 # 로그인 기능 추가
-# ---------------------
-# 로그인 기능 추가
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "user_role" not in st.session_state:
@@ -466,16 +464,16 @@ if not st.session_state.logged_in:
     st.title("로그인")
     username = st.text_input("사용자 이름")
     password = st.text_input("비밀번호", type="password")
-if st.button("로그인"):
-    if login(username, password):
-        st.session_state.logged_in = True
-        st.session_state.username = username
-        st.session_state.user_role = "admin" if username == "admin" else "user"
-        st.success("로그인 성공!")
-        # st.experimental_rerun()  # 이 줄을 주석 처리합니다.
-    else:
-        st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
-    st.stop()  # 로그인하지 않으면 아래 UI는 실행되지 않음
+    if st.button("로그인"):
+        if login(username, password):
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.session_state.user_role = "admin" if username == "admin" else "user"
+            st.success("로그인 성공!")
+            # st.experimental_rerun()  # 최신 버전을 사용하지 않는 경우 주석 처리
+        else:
+            st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
+        st.stop()  # 로그인하지 않으면 이후 UI가 실행되지 않음
 
 # ---------------------
 # 6) UI (탭)
