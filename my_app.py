@@ -169,6 +169,24 @@ def get_all_feedback(db_path="problems.db"):
     conn.close()
     return df
 
+def get_feedback_with_problem(db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
+    query = """
+    SELECT 
+        f.id,
+        f.user_id,
+        f.problem_id,
+        p.question AS 문제내용,
+        f.feedback_text,
+        f.feedback_time
+    FROM feedback f
+    LEFT JOIN problems p ON f.problem_id = p.id
+    ORDER BY f.feedback_time DESC;
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
 # DB 초기화 후, DB의 type 필드를 업데이트합니다.
 init_db("problems.db")
 update_db_types()
@@ -793,8 +811,8 @@ if st.session_state.user_role == "admin":
             st.info("해당 조건에 맞는 활동 내역이 없습니다.")
         
         # 피드백 관리 탭 추가
-        st.subheader("학습자 피드백 관리")
-        feedback_df = get_all_feedback()
+        st.subheader("학습자 피드백 관리 (문제 내용 포함)")
+        feedback_df = get_feedback_with_problem()
         if not feedback_df.empty:
             st.dataframe(feedback_df)
         else:
