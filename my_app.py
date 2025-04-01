@@ -137,6 +137,38 @@ def update_db_types(db_path="problems.db"):
     conn.commit()
     conn.close()
 
+# 1. DB에 피드백 테이블 추가
+def create_feedback_table(db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            problem_id INTEGER,
+            feedback_text TEXT,
+            feedback_time DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+create_feedback_table("problems.db")
+
+def record_feedback(user_id, problem_id, feedback_text, db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute("INSERT INTO feedback (user_id, problem_id, feedback_text) VALUES (?, ?, ?)",
+              (user_id, problem_id, feedback_text))
+    conn.commit()
+    conn.close()
+
+def get_all_feedback(db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
+    df = pd.read_sql_query("SELECT * FROM feedback ORDER BY feedback_time DESC", conn)
+    conn.close()
+    return df
+
 # DB 초기화 후, DB의 type 필드를 업데이트합니다.
 init_db("problems.db")
 update_db_types()
@@ -617,6 +649,35 @@ with tab1:
                     st.error(f"오답입니다. 모범답안: {correct_text}")
                     is_correct = 0
 
+        if st.session_state.submitted_answer:
+            # 채점 코드 이후 피드백 입력창 추가
+            st.write("### 문제에 대한 피드백을 남겨주세요 (선택 사항)")
+            user_feedback = st.text_area("피드백 입력")
+            if st.button("피드백 제출"):
+                record_feedback(st.session_state.get("username", "guest"),
+                                prob.get("id", 0),
+                                user_feedback)
+                st.success("피드백이 제출되었습니다!")
+
+        # 개인 대시보드 추가: 날짜별 시도 건수 선 그래프
+        st.subheader("개인 학습 추이")
+        # DB에서 사용자의 시도 기록을 날짜별로 집계
+        user_id = st.session_state.get("username", "guest")
+        conn = sqlite3.connect("problems.db")
+        query = """
+        SELECT DATE(attempt_time) AS date, COUNT(*) AS attempts
+        FROM attempts
+        WHERE user_id = ?
+        GROUP BY DATE(attempt_time)
+        ORDER BY DATE(attempt_time)
+        """
+        personal_attempts = pd.read_sql_query(query, conn, params=(user_id,))
+        conn.close()
+        if not personal_attempts.empty:
+            st.line_chart(personal_attempts.set_index("date"))
+        else:
+            st.info("아직 문제풀이 기록이 없습니다.")
+
             # 문제 풀이 시도 기록 추가 (문제 ID가 DB에 저장된 경우 사용, 없으면 0)
             problem_id = prob.get("id", 0)
             # 로그인 기능이 있으므로 사용자 ID는 st.session_state["username"]
@@ -706,6 +767,49 @@ if st.session_state.user_role == "admin":
                 st.success("문제가 성공적으로 수정되었습니다!")
         else:
             st.info("해당 출처(유형)에 해당하는 문제가 없습니다.")
+
+        # 활동 내역 필터링 추가 (예: 사용자명, 날짜 범위)
+        st.write("### 활동 내역 필터링")
+        filter_user = st.text_input("사용자명 필터 (빈칸이면 전체)")
+        date_range = st.date_input("날짜 범위 선택", [])
+        query = "SELECT * FROM attempts"
+        params = []
+        conditions = []
+        if filter_user:
+            conditions.append("user_id = ?")
+            params.append(filter_user)
+        if len(date_range) == 2:
+            conditions.append("DATE(attempt_time) BETWEEN ? AND ?")
+            params.extend([date_range[0].strftime("%Y-%m-%d"), date_range[1].strftime("%Y-%m-%d")])
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        query += " ORDER BY attempt_time DESC"
+        conn = sqlite3.connect("problems.db")
+        filtered_attempts = pd.read_sql_query(query, conn, params=params)
+        conn.close()
+        if not filtered_attempts.empty:
+            st.dataframe(filtered_attempts)
+        else:
+            st.info("해당 조건에 맞는 활동 내역이 없습니다.")
+        
+        # 피드백 관리 탭 추가
+        st.subheader("학습자 피드백 관리")
+        feedback_df = get_all_feedback()
+        if not feedback_df.empty:
+            st.dataframe(feedback_df)
+        else:
+            st.info("피드백 기록이 없습니다.")
+        
+        # 알림 기능: 예를 들어, 특정 챕터의 정답률이 낮은 경우 표시
+        st.subheader("알림: 낮은 정답률 문제 감지")
+        chapter_accuracy = get_chapter_accuracy()
+        # 정답률이 50% 이하인 챕터를 알림으로 표시
+        low_accuracy = chapter_accuracy[chapter_accuracy["accuracy_percentage"] <= 50]
+        if not low_accuracy.empty:
+            st.warning("정답률이 낮은 챕터가 있습니다:")
+            st.dataframe(low_accuracy)
+        else:
+            st.info("모든 챕터의 정답률이 양호합니다.")
 
 # --- 통계 및 대시보드 ---
 with tab3:
