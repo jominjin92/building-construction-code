@@ -649,6 +649,12 @@ with tab1:
                     st.error(f"오답입니다. 모범답안: {correct_text}")
                     is_correct = 0
 
+            # 문제 풀이 시도 기록 추가 (문제 ID가 DB에 저장된 경우 사용, 없으면 0)
+            problem_id = prob.get("id", 0)
+            # 로그인 기능이 있으므로 사용자 ID는 st.session_state["username"]
+            user_id = st.session_state.get("username", "guest")
+            record_attempt(user_id, problem_id, user_choice, is_correct)
+
         if st.session_state.submitted_answer:
             # 채점 코드 이후 피드백 입력창 추가
             st.write("### 문제에 대한 피드백을 남겨주세요 (선택 사항)")
@@ -677,13 +683,7 @@ with tab1:
             st.line_chart(personal_attempts.set_index("date"))
         else:
             st.info("아직 문제풀이 기록이 없습니다.")
-
-            # 문제 풀이 시도 기록 추가 (문제 ID가 DB에 저장된 경우 사용, 없으면 0)
-            problem_id = prob.get("id", 0)
-            # 로그인 기능이 있으므로 사용자 ID는 st.session_state["username"]
-            user_id = st.session_state.get("username", "guest")
-            record_attempt(user_id, problem_id, user_choice, is_correct)
-    
+  
             explanation = prob.get("해설", {})
             if isinstance(explanation, str):
                 try:
