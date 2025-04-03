@@ -597,6 +597,25 @@ if st.session_state.user_role == "admin":
 else:
     tab_problem, tab_dashboard = st.tabs(["📘 문제풀이", "📊 학습 통계"])
 
+if st.session_state.user_role == "admin":
+    uploaded_file = st.file_uploader("📂 CSV 문제 파일 업로드 (관리자 전용)", type="csv")
+    if uploaded_file:
+        try:
+            df = pd.read_csv(uploaded_file)
+        except:
+            st.error("CSV 파일 읽기 실패")
+
+st.markdown("""
+    <style>
+        .main {
+            max-width: 1200px !important;
+            margin: auto;
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- 사용자 모드 ---
 with tab_problem:
     st.subheader("📘 문제풀이")
