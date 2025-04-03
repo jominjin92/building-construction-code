@@ -592,14 +592,6 @@ def update_problem_in_db(problem_id, updated_problem, db_path="problems.db"):
 st.title("건축시공학 문제 생성 및 풀이")
 
 # 관리자는 관리자 모드와 전체 통계 탭을 모두 볼 수 있게 함
-if st.session_state.user_role == "admin":
-    if uploaded_file:
-        try:
-            df = pd.read_csv(uploaded_file)
-            st.success("CSV 파일이 성공적으로 업로드되었습니다.")
-        except:
-            st.error("CSV 파일을 읽는 중 오류가 발생했습니다.")
-
 st.markdown("""
     <style>
         .main {
