@@ -75,32 +75,6 @@ if not st.session_state["logged_in"]:
     st.stop()  # 로그인되지 않은 경우 아래의 코드는 실행되지 않음
 
 # ---------------------
-# 2) CSV 파일 로드
-# ---------------------
-uploaded_file = st.file_uploader("CSV 파일을 업로드하세요", type="csv")
-if uploaded_file is not None:
-    try:
-        df = pd.read_csv(uploaded_file)
-        logging.info("CSV 파일 업로드 성공")
-    except Exception as e:
-        logging.error("CSV 파일 읽기 오류: %s", e)
-        st.error("CSV 파일을 읽는 도중 오류 발생했습니다.")
-        st.stop()
-else:
-    default_file_path = "456.csv"
-    if os.path.exists(default_file_path):
-        try:
-            df = pd.read_csv(default_file_path)
-            logging.info("기본 CSV 파일 로드 성공")
-        except Exception as e:
-            logging.error("기본 CSV 파일 읽기 오류: %s", e)
-            st.error("기본 CSV 파일을 읽는 도중 오류 발생했습니다.")
-            st.stop()
-    else:
-        st.error("CSV 파일이 업로드되지 않았으며, 기본 파일도 존재하지 않습니다.")
-        st.stop()
-
-# ---------------------
 # 3) DB 초기화
 # ---------------------
 def init_db(db_path="problems.db"):
