@@ -573,6 +573,8 @@ if "user_role" in st.session_state:
     else:
         tab_problem, tab_dashboard = st.tabs(["📘 문제풀이", "📊 학습 통계"])
 
+df = None
+
 # 관리자이든 일반 사용자이든, df가 없으면 기본 파일 로딩
 if df is None:
     default_file_path = "456.csv"
