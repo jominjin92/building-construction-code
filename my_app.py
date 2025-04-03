@@ -591,6 +591,14 @@ def update_problem_in_db(problem_id, updated_problem, db_path="problems.db"):
 # ---------------------
 st.title("건축시공학 문제 생성 및 풀이")
 
+if "user_role" in st.session_state:
+    
+    # 1. 탭 정의
+    if st.session_state.user_role == "admin":
+        tab_problem, tab_admin, tab_dashboard = st.tabs(["📘 문제풀이", "🛠 문제 관리", "📊 학습 통계"])
+    else:
+        tab_problem, tab_dashboard = st.tabs(["📘 문제풀이", "📊 학습 통계"])
+
 df = None  # 전역 CSV 데이터프레임
 
 if st.session_state.user_role == "admin":
