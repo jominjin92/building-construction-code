@@ -593,25 +593,20 @@ st.title("건축시공학 문제 생성 및 풀이")
 
 # 관리자는 관리자 모드와 전체 통계 탭을 모두 볼 수 있게 함
 if st.session_state.user_role == "admin":
-    tab_problem, tab_admin, tab_dashboard = st.tabs(["📘 문제풀이", "🛠 문제 관리", "📊 학습 통계"])
-else:
-    tab_problem, tab_dashboard = st.tabs(["📘 문제풀이", "📊 학습 통계"])
-
-if st.session_state.user_role == "admin":
-    uploaded_file = st.file_uploader("📂 CSV 문제 파일 업로드 (관리자 전용)", type="csv")
     if uploaded_file:
         try:
             df = pd.read_csv(uploaded_file)
+            st.success("CSV 파일이 성공적으로 업로드되었습니다.")
         except:
-            st.error("CSV 파일 읽기 실패")
+            st.error("CSV 파일을 읽는 중 오류가 발생했습니다.")
 
 st.markdown("""
     <style>
         .main {
-            max-width: 1200px !important;
-            margin: auto;
-            padding-left: 2rem;
-            padding-right: 2rem;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding-left: 1rem;
+            padding-right: 1rem;
         }
     </style>
 """, unsafe_allow_html=True)
