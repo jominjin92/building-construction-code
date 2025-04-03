@@ -720,6 +720,37 @@ if st.session_state.user_role == "admin":
             else:
                 st.info("해당 유형의 문제가 없습니다.")
 
+            st.markdown("#### ✏️ 문제 수정")
+
+            # 문제 필드 편집
+            edited_question = st.text_area("문제 내용", value=selected_problem["question"])
+            edited_choice1 = st.text_input("선택지 1", value=selected_problem["choice1"])
+            edited_choice2 = st.text_input("선택지 2", value=selected_problem["choice2"])
+            edited_choice3 = st.text_input("선택지 3", value=selected_problem["choice3"])
+            edited_choice4 = st.text_input("선택지 4", value=selected_problem["choice4"])
+            edited_answer = st.selectbox("정답 선택 (숫자)", ["1", "2", "3", "4"], index=int(selected_problem["answer"]) - 1)
+            edited_difficulty = st.slider("난이도", 1, 5, value=selected_problem["difficulty"])
+            edited_chapter = st.text_input("챕터 (예: 1)", value=selected_problem["chapter"])
+            edited_type = st.selectbox("문제 유형", ["건축기사 기출문제", "건축시공 기출문제"], index=0 if selected_problem["유형"] == "건축기사 기출문제" else 1)
+            edited_explanation = st.text_area("해설 (JSON 형식)", value=selected_problem["explanation"])
+
+            # 저장 버튼
+            if st.button("💾 수정 내용 저장"):
+                updated_problem = {
+                    "question": edited_question,
+                    "choice1": edited_choice1,
+                    "choice2": edited_choice2,
+                    "choice3": edited_choice3,
+                    "choice4": edited_choice4,
+                    "answer": edited_answer,
+                    "difficulty": edited_difficulty,
+                    "chapter": edited_chapter,
+                    "유형": edited_type,
+                    "explanation": edited_explanation
+                }
+                update_problem_in_db(selected_problem["id"], updated_problem)
+                st.success("문제가 성공적으로 수정되었습니다.")
+
         # 오른쪽: 활동내역, 피드백, 알림
         with col2:
             st.markdown("#### 📋 활동 및 피드백")
