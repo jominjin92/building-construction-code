@@ -591,6 +591,31 @@ def update_problem_in_db(problem_id, updated_problem, db_path="problems.db"):
 # ---------------------
 st.title("건축시공학 문제 생성 및 풀이")
 
+df = None  # 전역 CSV 데이터프레임
+
+if st.session_state.user_role == "admin":
+    uploaded_file = st.file_uploader("📂 CSV 문제 파일 업로드 (관리자 전용)", type="csv")
+    if uploaded_file is not None:
+        try:
+            df = pd.read_csv(uploaded_file)
+            st.success("CSV 파일이 성공적으로 업로드되었습니다.")
+        except:
+            st.error("CSV 파일을 읽는 중 오류가 발생했습니다.")
+
+if df is None:
+    default_file_path = "456.csv"
+    if os.path.exists(default_file_path):
+        try:
+            df = pd.read_csv(default_file_path)
+            logging.info("기본 CSV 파일 로드 성공")
+        except Exception as e:
+            logging.error("기본 CSV 파일 읽기 오류: %s", e)
+            st.error("기본 CSV 파일을 읽는 도중 오류 발생했습니다.")
+            st.stop()
+    else:
+        st.error("CSV 파일이 업로드되지 않았으며, 기본 파일도 존재하지 않습니다.")
+        st.stop()
+
 # 관리자는 관리자 모드와 전체 통계 탭을 모두 볼 수 있게 함
 st.markdown("""
     <style>
