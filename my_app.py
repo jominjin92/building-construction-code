@@ -693,73 +693,73 @@ with tab_problem:
 # --- 관리자 모드 ---
 if st.session_state.user_role == "admin":
     with tab_admin:
-    st.subheader("🛠 문제 관리")
+        st.subheader("🛠 문제 관리")
 
-    col1, col2 = st.columns([2, 1])
+        col1, col2 = st.columns([2, 1])
 
     # 왼쪽: 문제 선택 및 편집
-    with col1:
-        st.markdown("#### 🔧 문제 선택 및 편집")
+        with col1:
+            st.markdown("#### 🔧 문제 선택 및 편집")
 
-        problems = get_all_problems_dict()
-        source_filter_dashboard = st.selectbox(
-            "문제 출처(유형) 필터",
-            ["전체", "건축기사 기출문제", "건축시공 기출문제"],
-            key="filter_tab_admin"
-        )
-        if source_filter_dashboard != "전체":
-            problems = [p for p in problems if p["유형"] == source_filter_dashboard]
+            problems = get_all_problems_dict()
+            source_filter_dashboard = st.selectbox(
+                "문제 출처(유형) 필터",
+                ["전체", "건축기사 기출문제", "건축시공 기출문제"],
+                key="filter_tab_admin"
+            )
+            if source_filter_dashboard != "전체":
+                problems = [p for p in problems if p["유형"] == source_filter_dashboard]
 
-        if problems:
-            problem_options = {f"{p['id']} - {p['question'][:30]}": p for p in problems}
-            selected_key = st.selectbox("편집할 문제 선택:", list(problem_options.keys()))
-            selected_problem = problem_options[selected_key]
+            if problems:
+                problem_options = {f"{p['id']} - {p['question'][:30]}": p for p in problems}
+                selected_key = st.selectbox("편집할 문제 선택:", list(problem_options.keys()))
+                selected_problem = problem_options[selected_key]
 
-            # 편집 UI 코드 기존 그대로 유지
+                # 편집 UI 코드 기존 그대로 유지
 
-        else:
-            st.info("해당 유형의 문제가 없습니다.")
+            else:
+                st.info("해당 유형의 문제가 없습니다.")
 
-    # 오른쪽: 활동내역, 피드백, 알림
-    with col2:
-        st.markdown("#### 📋 활동 및 피드백")
+        # 오른쪽: 활동내역, 피드백, 알림
+        with col2:
+            st.markdown("#### 📋 활동 및 피드백")
 
-        filter_user = st.text_input("사용자명 필터")
-        date_range = st.date_input("날짜 범위 선택", [])
-        query = "SELECT * FROM attempts"
-        params, conditions = [], []
-        if filter_user:
-            conditions.append("user_id = ?")
-            params.append(filter_user)
-        if len(date_range) == 2:
-            conditions.append("DATE(attempt_time) BETWEEN ? AND ?")
-            params.extend([date_range[0].strftime("%Y-%m-%d"), date_range[1].strftime("%Y-%m-%d")])
-        if conditions:
-            query += " WHERE " + " AND ".join(conditions)
-        query += " ORDER BY attempt_time DESC"
-        conn = sqlite3.connect("problems.db")
-        filtered_attempts = pd.read_sql_query(query, conn, params=params)
-        conn.close()
-        if not filtered_attempts.empty:
-            st.dataframe(filtered_attempts)
-        else:
-            st.info("해당 활동 내역 없음.")
+            filter_user = st.text_input("사용자명 필터")
+            date_range = st.date_input("날짜 범위 선택", [])
+            query = "SELECT * FROM attempts"
+            params, conditions = [], []
+            if filter_user:
+                conditions.append("user_id = ?")
+                params.append(filter_user)
+            if len(date_range) == 2:
+                conditions.append("DATE(attempt_time) BETWEEN ? AND ?")
+                params.extend([date_range[0].strftime("%Y-%m-%d"), date_range[1].strftime("%Y-%m-%d")])
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+            query += " ORDER BY attempt_time DESC"
+            conn = sqlite3.connect("problems.db")
+            filtered_attempts = pd.read_sql_query(query, conn, params=params)
+            conn.close()
+            if not filtered_attempts.empty:
+                st.dataframe(filtered_attempts)
+            else:
+                st.info("해당 활동 내역 없음.")
 
-        st.markdown("#### 💬 피드백 보기")
-        feedback_df = get_feedback_with_problem()
-        if not feedback_df.empty:
-            st.dataframe(feedback_df)
-        else:
-            st.info("피드백 없음.")
+            st.markdown("#### 💬 피드백 보기")
+            feedback_df = get_feedback_with_problem()
+            if not feedback_df.empty:
+                st.dataframe(feedback_df)
+            else:
+                st.info("피드백 없음.")
 
-        st.markdown("#### ⚠️ 낮은 정답률 챕터")
-        chapter_accuracy = get_chapter_accuracy()
-        low_accuracy = chapter_accuracy[chapter_accuracy["accuracy_percentage"] <= 50]
-        if not low_accuracy.empty:
-            st.warning("정답률이 낮은 챕터가 있습니다.")
-            st.dataframe(low_accuracy)
-        else:
-            st.info("정답률이 낮은 챕터가 없습니다.")
+            st.markdown("#### ⚠️ 낮은 정답률 챕터")
+            chapter_accuracy = get_chapter_accuracy()
+            low_accuracy = chapter_accuracy[chapter_accuracy["accuracy_percentage"] <= 50]
+            if not low_accuracy.empty:
+                st.warning("정답률이 낮은 챕터가 있습니다.")
+                st.dataframe(low_accuracy)
+            else:
+                st.info("정답률이 낮은 챕터가 없습니다.")
 
 # --- 통계 및 대시보드 ---
 with tab_dashboard:
