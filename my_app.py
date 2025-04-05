@@ -813,7 +813,7 @@ with tabs[1]:
         for prob in problems:
             with st.expander(f"문제 ID {prob['id']}: {prob['문제'][:30]}..."):
 
-                edited_problem = st.text_area("문제 내용", prob['문제'], key=f"edit_question_{prob['id']}")
+                edited_problem = st.text_area("문제 내용", prob['문제'], key=f"edit_answer_{problem_key}_{uuid.uuid4()}")
 
 
         # 문제 형식에 따라 선택지 입력 다르게 처리
@@ -822,12 +822,14 @@ with tabs[1]:
                         st.text_input(f"선택지 {i+1}", prob['선택지'][i] if i < len(prob['선택지']) else "", key=f"edit_choice_{i}_{prob['id']}")
                         for i in range(4)
                     ]
-                    problem_key = prob.get("id", prob["문제"][:10])
+                    problem_text = prob.get("문제", "")
+                    problem_key = prob.get("id", problem_text[:10])
                     edited_answer = st.selectbox(
                         "정답 선택 (숫자)",
                         ["1", "2", "3", "4"],
                         index=int(prob['정답']) - 1 if prob['정답'].isdigit() and int(prob['정답']) in range(1, 5) else 0,
-                        problem_key = prob.get("id", prob["문제"][:10])
+                        problem_text = prob.get("문제", "")
+                        problem_key = prob.get("id", problem_text[:10])
                         key=f"edit_answer_{problem_key}"
                     )
                 else:
