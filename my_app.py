@@ -724,6 +724,8 @@ with tab_problem:
                             del st.session_state[key]
                     st.rerun()
 
+    col1, col2 = st.columns([2, 1])  # 문제/선택지 | 풀이/결과
+
     with col1:
         st.markdown("#### 문제 출처 및 생성")
         question_source = st.selectbox("문제 출처 선택", ["건축기사 기출문제", "건축시공 기출문제"])
