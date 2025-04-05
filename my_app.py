@@ -298,38 +298,34 @@ def generate_variation_question(df, question_type=None):
     (건축기사 기출문제)
     """
     try:
-        # 문제 유형별 필터링
         if question_type == "객관식":
-            # 객관식 문제: 건축기사 or 건축시공 객관식
             filtered_df = df[
-                (df['유형'] == "건축기사 기출문제") |
-                ((df['유형'] == "건축시공 기출문제") & (df['문제형식'] == "객관식"))
+                (df['구분'] == "건축기사 기출문제") |
+                ((df['구분'] == "건축시공 기출문제"))  # 건축시공 기출문제는 객관식+주관식 둘 다라서 문제형식 필터 불필요
             ]
         elif question_type == "주관식":
-            # 주관식 문제: 건축시공 주관식만
-            filtered_df = df[
-                (df['유형'] == "건축시공 기출문제") & (df['문제형식'] == "주관식")
-            ]
+            # 현재 CSV에는 문제형식 구분이 없으므로,
+            # 주관식 문제를 식별할 수 있는 기준 필요 (ex: 선택지1~4가 비어있으면 주관식?)
+            filtered_df = df[df['구분'] == "건축시공 기출문제"]  # 모든 건축시공 기출문제 가져오기
         else:
-            # 기본값: 전체
             filtered_df = df
 
-        # 데이터 없을 때 처리
         if filtered_df.empty:
             logging.warning(f"문제 유형 '{question_type}' 에 해당하는 문제가 없습니다.")
             return None
 
-        # 무작위 문제 추출
         original_question = filtered_df.sample(n=1).to_dict(orient='records')[0]
 
     except Exception as e:
         logging.error("질문 샘플 추출 오류: %s", e)
         return None
-    
-    # 선택지 처리 (객관식만)
+
+    # 객관식인지 주관식인지 판별
+    is_objective = all(original_question.get(opt, '') != '' for opt in ['선택지1', '선택지2', '선택지3', '선택지4'])
+
     choices = []
     correct_index = None
-    if question_type == "객관식":
+    if is_objective:
         choices = [
             original_question.get('선택지1', ''),
             original_question.get('선택지2', ''),
@@ -348,8 +344,8 @@ def generate_variation_question(df, question_type=None):
         "문제": original_question.get('문제', ''),
         "선택지": choices if choices else None,
         "정답": str(correct_index) if correct_index else str(original_question.get("정답", "")),
-        "유형": original_question.get('유형', "건축기사 기출문제"),
-        "문제형식": original_question.get('문제형식', "객관식"),  # 문제 형식 추가
+        "유형": original_question.get('구분', "건축기사 기출문제"),
+        "문제형식": "객관식" if is_objective else "주관식",
         "explanation": original_question.get('해설', '해설 없음'),
         "id": original_question.get('id', None)
     }
