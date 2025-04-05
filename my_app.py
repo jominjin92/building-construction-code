@@ -660,6 +660,7 @@ with tabs[0]:
 
         if st.button("문제 시작하기"):
             st.session_state.problem_list = []
+            st.session_state.show_problems = True  # ✅ 이거 추가!
             st.session_state.user_answers = {}
 
             if selected_source == "건축기사 기출문제":
@@ -697,6 +698,12 @@ with tabs[0]:
                 st.warning("문제가 없습니다. 문제를 먼저 생성하거나 선택해주세요.")
             else:
                 st.markdown(f"최종 정답률: **{correct_count} / {total}** ({(correct_count/total)*100:.2f}%)")
+
+            if st.session_state.get("show_problems", False):
+                for idx, prob in enumerate(st.session_state.problem_list):
+                    st.markdown(f"### 문제 {idx + 1}: {prob['문제']}")
+                    for i, choice in enumerate(prob['선택지']):
+                        st.radio(f"선택지 {idx + 1}", options=prob['선택지'], key=f"answer_{idx}")
 
     with col2:
         if st.session_state.get("show_problems", False):
