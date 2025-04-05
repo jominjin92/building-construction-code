@@ -691,6 +691,7 @@ with tabs[0]:
                         st.session_state.problem_list.extend(prob)
 
             # 2. 채점 결과 출력 부분 안정성 강화 (ZeroDivisionError 방지)
+            correct_count = sum(1 for prob in st.session_state.problem_list if prob.get("is_correct", False))
             total = len(st.session_state.problem_list)
             if total == 0:
                 st.warning("문제가 없습니다. 문제를 먼저 생성하거나 선택해주세요.")
