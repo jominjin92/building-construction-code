@@ -694,16 +694,16 @@ with tabs[0]:
                         st.session_state.problem_list.extend(prob)
 
         if st.session_state.get("show_problems", False):
-            for idx, prob in enumerate(st.session_state.problem_list):
-                st.markdown(f"### 문제 {idx + 1}: {prob['문제']}")
-                unique_key = f"answer_{idx}_{prob['문제형식']}_{prob['문제출처']}"
+            for prob in st.session_state.problem_list:
+                st.markdown(f"### 문제: {prob['문제']}")
+                unique_key = f"answer_{prob['id']}_{prob['문제형식']}_{prob['문제출처']}"
 
                 if prob["문제형식"] == "객관식":
-                    answer = st.radio(f"선택지 {idx + 1}", options=prob['선택지'], key=unique_key)
+                    answer = st.radio("선택지", prob["선택지"], key=unique_key)
                 else:
                     answer = st.text_area("답안을 입력해주세요.", key=unique_key)
 
-                st.session_state.user_answers[idx] = answer
+                st.session_state.user_answers[prob["id"]] = answer
 
             # 2. 채점 결과 출력 부분 안정성 강화 (ZeroDivisionError 방지)
                 correct_count = sum(1 for prob in st.session_state.problem_list if prob.get("is_correct", False))
@@ -717,7 +717,8 @@ with tabs[0]:
         if st.session_state.get("show_problems", False):
             st.markdown("### 📝 문제 풀이")
             for idx, prob in enumerate(st.session_state.problem_list):
-                st.markdown(f"**문제 {idx + 1}. {prob['문제']}**")
+                st.markdown(f"### 문제 {idx + 1}: {prob['문제']}")
+                unique_key = f"answer_{idx}_{prob['문제형식']}_{prob['문제출처']}"
                 if prob["문제형식"] == "객관식":
                     answer = st.radio("선택지", prob["선택지"], key=f"answer_{idx}")
                 else:
