@@ -291,39 +291,69 @@ def get_detailed_attempts_for_user(user_id):
 # ---------------------
 # 4) 문제 생성/저장 함수들
 # ---------------------
-def generate_variation_question(df):
+def generate_variation_question(df, question_type=None):
     """
     CSV에서 기존 문제 하나를 무작위로 뽑아,
     선택지만 섞은 객관식 문제를 반환.
     (건축기사 기출문제)
     """
     try:
-        original_question = df.sample(n=1).to_dict(orient='records')[0]
-        logging.info("샘플 데이터: %s", original_question)
+        # 문제 유형별 필터링
+        if question_type == "객관식":
+            # 객관식 문제: 건축기사 or 건축시공 객관식
+            filtered_df = df[
+                (df['유형'] == "건축기사 기출문제") |
+                ((df['유형'] == "건축시공 기출문제") & (df['문제형식'] == "객관식"))
+            ]
+        elif question_type == "주관식":
+            # 주관식 문제: 건축시공 주관식만
+            filtered_df = df[
+                (df['유형'] == "건축시공 기출문제") & (df['문제형식'] == "주관식")
+            ]
+        else:
+            # 기본값: 전체
+            filtered_df = df
+
+        # 데이터 없을 때 처리
+        if filtered_df.empty:
+            logging.warning(f"문제 유형 '{question_type}' 에 해당하는 문제가 없습니다.")
+            return None
+
+        # 무작위 문제 추출
+        original_question = filtered_df.sample(n=1).to_dict(orient='records')[0]
+
     except Exception as e:
         logging.error("질문 샘플 추출 오류: %s", e)
         return None
     
-    choices = [
-        original_question.get('선택지1', ''),
-        original_question.get('선택지2', ''),
-        original_question.get('선택지3', ''),
-        original_question.get('선택지4', '')
-    ]
-    random.shuffle(choices)
-    
-    try:
-        correct_index = choices.index(original_question.get(f'선택지{original_question["정답"]}', '')) + 1
-    except Exception as e:
-        logging.error("정답 인덱스 결정 오류: %s", e)
-        correct_index = 1
+    # 선택지 처리 (객관식만)
+    choices = []
+    correct_index = None
+    if question_type == "객관식":
+        choices = [
+            original_question.get('선택지1', ''),
+            original_question.get('선택지2', ''),
+            original_question.get('선택지3', ''),
+            original_question.get('선택지4', '')
+        ]
+        random.shuffle(choices)
+        try:
+            correct_choice = original_question.get(f'선택지{original_question["정답"]}', '')
+            correct_index = choices.index(correct_choice) + 1
+        except Exception as e:
+            logging.error("정답 인덱스 결정 오류: %s", e)
+            correct_index = 1
 
     new_question = {
         "문제": original_question.get('문제', ''),
-        "선택지": choices,
-        "정답": str(correct_index),  # 객관식 정답 (문자열)
-        "유형": "건축기사 기출문제"  # CSV 문제
+        "선택지": choices if choices else None,
+        "정답": str(correct_index) if correct_index else str(original_question.get("정답", "")),
+        "유형": original_question.get('유형', "건축기사 기출문제"),
+        "문제형식": original_question.get('문제형식', "객관식"),  # 문제 형식 추가
+        "explanation": original_question.get('해설', '해설 없음'),
+        "id": original_question.get('id', None)
     }
+
     return new_question
 
 def expand_question_with_gpt(base_question, base_choices, correct_answer, question_type="객관식"):
