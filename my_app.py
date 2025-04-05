@@ -21,6 +21,52 @@ else:
     st.error("API key 설정 오류: secrets.toml에 OPENAI_API_KEY가 없습니다.")
     st.stop()
 
+# Streamlit 기본 설정
+st.set_page_config(layout="wide")
+st.title("건축시공학 문제 생성 및 풀이")
+
+# DB 연결 및 테이블 생성
+conn = sqlite3.connect('problem_bank.db')
+cursor = conn.cursor()
+
+# 문제 테이블
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS problems (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        문제 TEXT,
+        선택지1 TEXT,
+        선택지2 TEXT,
+        선택지3 TEXT,
+        선택지4 TEXT,
+        정답 TEXT,
+        해설 TEXT,
+        문제형식 TEXT,
+        문제출처 TEXT
+    )
+''')
+
+# 시도 기록 테이블
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        문제ID INTEGER,
+        사용자가입력한정답 TEXT,
+        실제정답 TEXT,
+        정답여부 TEXT
+    )
+''')
+
+# 피드백 테이블
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        문제ID INTEGER,
+        피드백 TEXT
+    )
+''')
+
+conn.commit()
+
 # ---------------------
 # 로그인 기능 추가
 # ---------------------
@@ -457,531 +503,319 @@ def generate_explanation(question_text, answer_text):
         logging.error("해설 생성 오류: %s", e)
         return {"자세한해설": "해설 생성 중 오류가 발생했습니다.", "핵심요약": []}
 
-def save_problem_to_db(problem, db_path="problems.db"):
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    explanation_data = problem.get("해설", "")
-    if isinstance(explanation_data, dict):
-        explanation_data = json.dumps(explanation_data, ensure_ascii=False)
-    c.execute("""
-        INSERT INTO problems (question, choice1, choice2, choice3, choice4, answer, explanation, difficulty, chapter, type)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        problem.get("문제", ""),
-        problem.get("선택지", ["", "", "", ""])[0],
-        problem.get("선택지", ["", "", "", ""])[1],
-        problem.get("선택지", ["", "", "", ""])[2],
-        problem.get("선택지", ["", "", "", ""])[3],
-        problem.get("정답", ""),
-        explanation_data,
-        problem.get("난이도", 3),
-        problem.get("주제", "1"),
-        problem.get("유형", "건축기사 기출문제")  # 기본값
+# 문제 DB 저장 함수
+def save_problem_to_db(problem_data):
+    cursor.execute('''
+        INSERT INTO problems (문제, 선택지1, 선택지2, 선택지3, 선택지4, 정답, 해설, 문제형식, 문제출처)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        problem_data["문제"],
+        problem_data["선택지"][0] if problem_data["선택지"] else None,
+        problem_data["선택지"][1] if problem_data["선택지"] else None,
+        problem_data["선택지"][2] if problem_data["선택지"] else None,
+        problem_data["선택지"][3] if problem_data["선택지"] else None,
+        problem_data["정답"],
+        problem_data["해설"],
+        problem_data["문제형식"],
+        problem_data["문제출처"]
     ))
     conn.commit()
-    conn.close()
 
-def generate_new_problem(question_type="객관식", source="건축시공 기출문제"):
-    """
-    GPT를 통해 완전히 새로운 문제(객관식/주관식)를 생성하여 DB에 저장.
-    source 인자로 "건축시공 기출문제"로 구분.
-    """
-    # CSV 문제를 하나 뽑아 base_question, base_choices, correct_answer를 만듦
-    base = generate_variation_question(df)
-    if base is None:
-        st.error("기존 문제 추출 실패")
-        return None
-
-    base_question = base["문제"]
-    base_choices = base["선택지"]
-    correct_answer = base["정답"]  # e.g. "2"
-
-    # GPT로 새 문제 생성
-    new_problem = expand_question_with_gpt(base_question, base_choices, correct_answer, question_type)
-    if new_problem is None:
-        st.error("GPT 문제 생성 실패")
-        return None
-
-    # 난이도/챕터
-    chapter = classify_chapter(base_question)
-    difficulty = classify_difficulty(base_question)
-
-    # 해설 생성
-    if question_type == "객관식":
-        correct_idx = int(new_problem["정답"]) - 1
-        ans_text = new_problem["선택지"][correct_idx]
-    else:
-        ans_text = new_problem["모범답안"]
-
-    explanation_dict = generate_explanation(new_problem["문제"], ans_text)
-
-    new_problem["해설"] = explanation_dict
-    new_problem["난이도"] = difficulty
-    new_problem["주제"] = chapter
-    new_problem["유형"] = source  # "건축시공 기출문제"
-
-    # DB에 저장
-    save_problem_to_db(new_problem)
-    return new_problem
-
-def get_all_problems(db_path="problems.db"):
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    c.execute("SELECT * FROM problems")
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
-def get_all_problems_dict(db_path="problems.db"):
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    c.execute("""
-        SELECT id, question, choice1, choice2, choice3, choice4, 
-               answer, explanation, difficulty, chapter, type
-        FROM problems
-    """)
-    rows = c.fetchall()
-    conn.close()
-
-    problems = []
+# ✅ 문제 불러오기 (DB 기반)
+def load_problems_from_db(question_type, num_questions):
+    query = "SELECT * FROM problems WHERE 문제형식=? AND 문제출처='건축시공 기출문제' ORDER BY RANDOM() LIMIT ?"
+    cursor.execute(query, (question_type, num_questions))
+    rows = cursor.fetchall()
+    problem_list = []
     for row in rows:
-        problems.append({
-            "id": row[0],
-            "question": row[1],
-            "choice1": row[2],
-            "choice2": row[3],
-            "choice3": row[4],
-            "choice4": row[5],
-            "answer": row[6],
-            "explanation": row[7],
-            "difficulty": row[8],
-            "chapter": row[9],
-            "유형": row[10]
+        problem_list.append({
+            "문제": row[1],
+            "선택지": [row[2], row[3], row[4], row[5]] if row[2] else [],
+            "정답": row[6],
+            "해설": row[7],
+            "문제형식": row[8],
+            "문제출처": row[9],
+            "id": row[0]
         })
-    return problems
+    return problem_list
 
-def update_problem_in_db(problem_id, updated_problem, db_path="problems.db"):
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    c.execute("""
-        UPDATE problems
-        SET question=?, choice1=?, choice2=?, choice3=?, choice4=?,
-            answer=?, explanation=?, difficulty=?, chapter=?, type=?
-        WHERE id=?
-    """, (
-        updated_problem["question"],
-        updated_problem["choice1"],
-        updated_problem["choice2"],
-        updated_problem["choice3"],
-        updated_problem["choice4"],
-        updated_problem["answer"],
-        updated_problem["explanation"],
-        updated_problem["difficulty"],
-        updated_problem["chapter"],
-        updated_problem["유형"],
+# ✅ 문제 수정 함수 (관리자용)
+def update_problem_in_db(problem_id, updated_data):
+    cursor.execute('''
+        UPDATE problems SET 문제=?, 선택지1=?, 선택지2=?, 선택지3=?, 선택지4=?, 정답=?, 해설=?, 문제형식=?, 문제출처=? WHERE id=?
+    ''', (
+        updated_data["문제"],
+        updated_data["선택지"][0],
+        updated_data["선택지"][1],
+        updated_data["선택지"][2],
+        updated_data["선택지"][3],
+        updated_data["정답"],
+        updated_data["해설"],
+        updated_data["문제형식"],
+        updated_data["문제출처"],
         problem_id
     ))
     conn.commit()
-    conn.close()
+
+# ✅ 문제 삭제 함수 (관리자용)
+def delete_problem_from_db(problem_id):
+    cursor.execute('DELETE FROM problems WHERE id=?', (problem_id,))
+    conn.commit()
+
+# OpenAI 문제 생성 함수
+def generate_openai_problem(question_type):
+    prompt = f"""
+    당신은 건축시공학 교수입니다. 건축시공학과 관련된 {question_type} 문제를 하나 출제하고, 선택지와 정답, 해설을 제공하세요.
+
+    - 문제:
+    - 선택지1:
+    - 선택지2:
+    - 선택지3:
+    - 선택지4:
+    - 정답 번호 (1~4 중 하나):
+    - 해설:
+    """
+
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7
+    )
+
+    result = response['choices'][0]['message']['content']
+    lines = result.strip().split("\n")
+
+    problem_data = {
+        "문제": lines[0].replace("문제:", "").strip(),
+        "선택지": [
+            lines[1].split(":")[1].strip(),
+            lines[2].split(":")[1].strip(),
+            lines[3].split(":")[1].strip(),
+            lines[4].split(":")[1].strip()
+        ],
+        "정답": lines[5].split(":")[1].strip(),
+        "문제출처": "건축시공 기출문제",
+        "문제형식": question_type,
+        "해설": lines[6].replace("해설:", "").strip(),
+        "id": None
+    }
+
+    save_problem_to_db(problem_data)
+    return problem_data
+
+# ✅ 전체 문제 조회 (관리자용)
+def get_all_problems_dict():
+    cursor.execute("SELECT * FROM problems")
+    rows = cursor.fetchall()
+    problem_list = []
+    for row in rows:
+        problem_list.append({
+            "id": row[0],
+            "문제": row[1],
+            "선택지": [row[2], row[3], row[4], row[5]] if row[2] else [],
+            "정답": row[6],
+            "해설": row[7],
+            "문제형식": row[8],
+            "문제출처": row[9]
+        })
+    return problem_list
+
+# ✅ 로그인 함수
+def login():
+    user_id = st.sidebar.text_input("아이디")
+    password = st.sidebar.text_input("비밀번호", type="password")
+    if st.sidebar.button("로그인"):
+        if user_id == "admin" and password == "1234":
+            st.session_state.user_role = "admin"
+            st.sidebar.success("관리자 로그인 성공!")
+        else:
+            st.session_state.user_role = "user"
+            st.sidebar.success("사용자 로그인 성공!")
+
+# ✅ 초기 세션 상태
+if "user_role" not in st.session_state:
+    st.session_state.user_role = None
 
 # ---------------------
 # 6) UI (탭)
 # ---------------------
-st.title("건축시공학 문제 생성 및 풀이")
+login()
 
-if "user_role" in st.session_state:
-    
-    # 1. 탭 정의
-    if st.session_state.user_role == "admin":
-        tab_problem, tab_admin, tab_dashboard = st.tabs(["📘 문제풀이", "🛠 문제 관리", "📊 학습 통계"])
-    else:
-        tab_problem, tab_dashboard = st.tabs(["📘 문제풀이", "📊 학습 통계"])
+# 탭 구성
+tabs = st.tabs(["문제풀이", "문제 관리", "통계 및 대시보드"])
 
-df = None
+# 1. 문제풀이 탭
+with tabs[0]:
+    st.header("문제풀이")
 
-# 관리자이든 일반 사용자이든, df가 없으면 기본 파일 로딩
-if df is None:
-    default_file_path = "456.csv"
-    if os.path.exists(default_file_path):
-        try:
-            df = pd.read_csv(default_file_path)
-            logging.info("기본 CSV 파일 로드 성공")
-        except Exception as e:
-            logging.error("기본 CSV 파일 읽기 오류: %s", e)
-            st.error("기본 CSV 파일을 읽는 도중 오류 발생했습니다.")
-            st.stop()
-    else:
-        st.error("CSV 파일이 업로드되지 않았으며, 기본 파일도 존재하지 않습니다.")
-        st.stop()
+    col1, col2 = st.columns([2, 1])
 
-# 관리자는 관리자 모드와 전체 통계 탭을 모두 볼 수 있게 함
-st.markdown("""
-    <style>
-        .main {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
-    </style>
-""", unsafe_allow_html=True)
+    with col1:
+        st.markdown("### 문제 출처 및 수 선택")
+        selected_source = st.radio("문제 출처 선택", ("건축기사 기출문제", "건축시공 기출문제"))
+        num_objective = st.number_input("객관식 문제 수", min_value=1, value=3, step=1)
+        num_subjective = 0
+        if selected_source == "건축시공 기출문제":
+            num_subjective = st.number_input("주관식 문제 수", min_value=0, value=2, step=1)
 
-# --- 사용자 모드 ---
-with tab_problem:
-    st.subheader("📘 문제풀이")
+        if st.button("문제 시작하기"):
+            st.session_state.problem_list = []
+            st.session_state.user_answers = {}
 
-    # Step 1: 문제 출처 선택
-    st.markdown("### 🔍 문제 출처 선택")
-    selected_source = st.radio(
-        "문제 출처를 선택하세요:",
-        ("건축기사 기출문제", "건축시공 기출문제"),
-        key="selected_source"
-    )
+            if selected_source == "건축기사 기출문제":
+                st.warning("CSV 기반 문제 출제는 추후 업데이트 예정입니다!")
+            else:
+                st.session_state.problem_list.extend(load_problems_from_db("객관식", num_objective))
+                st.session_state.problem_list.extend(load_problems_from_db("주관식", num_subjective))
 
-    # Step 2: 문제 수 선택
-    num_objective = 0
-    num_subjective = 0
+            if st.session_state.problem_list:
+                st.session_state.show_problems = True
+                st.session_state.show_results = False
+                st.rerun()
 
-    if selected_source == "건축기사 기출문제":
-        st.markdown("### 📋 문제 수 선택 (건축기사 기출문제 - 객관식만)")
-        num_objective = st.number_input("객관식 문제 수", min_value=1, value=3, step=1, key="num_objective")
-    else:
-        st.markdown("### 📋 문제 수 선택 (건축시공 기출문제 - 객관식 + 주관식)")
-        num_objective = st.number_input("객관식 문제 수", min_value=0, value=3, step=1, key="num_objective")
-        num_subjective = st.number_input("주관식 문제 수", min_value=0, value=2, step=1, key="num_subjective")
-
-    if st.button("문제 시작하기"):
-        st.session_state.problem_list = []
-        st.session_state.user_answers = {}
-
-        # Step 3: 문제 생성
-        if num_objective > 0:
-            for _ in range(num_objective):
-                prob = generate_variation_question(df, question_type="객관식")
-                if prob:
-                    st.session_state.problem_list.append(prob)
-
-        if selected_source == "건축시공 기출문제" and num_subjective > 0:
-            for _ in range(num_subjective):
-                prob = generate_variation_question(df, question_type="주관식")
-                if prob:
-                    st.session_state.problem_list.append(prob)
-
-        if st.session_state.problem_list:
-            st.session_state.show_problems = True
-            st.session_state.show_results = False
-            st.rerun()
-        else:
-            st.warning("문제를 생성할 수 없습니다. CSV 파일을 확인해주세요.")
-
-    # Step 4: 문제 출력
-    if st.session_state.get("show_problems", False):
-        col1, col2 = st.columns([2, 1])  # 문제/선택지 | 풀이/결과
-
-        with col1:
+    with col2:
+        if st.session_state.get("show_problems", False):
             st.markdown("### 📝 문제 풀이")
             for idx, prob in enumerate(st.session_state.problem_list):
                 st.markdown(f"**문제 {idx + 1}. {prob['문제']}**")
                 if prob["문제형식"] == "객관식":
                     answer = st.radio("선택지", prob["선택지"], key=f"answer_{idx}")
                 else:
-                    answer = st.text_input("답안을 입력하세요", key=f"answer_{idx}")
+                    answer = st.text_area("답안을 입력하세요", key=f"answer_{idx}")
                 st.session_state.user_answers[idx] = answer
 
             if st.button("채점하기"):
                 st.session_state.show_results = True
                 st.rerun()
 
-        with col2:
-            if st.session_state.get("show_results", False):
-                st.markdown("### ✅ 채점 결과")
-                correct_count = 0
-                total = len(st.session_state.problem_list)
+        if st.session_state.get("show_results", False):
+            st.markdown("### ✅ 채점 결과")
+            correct_count = 0
+            total = len(st.session_state.problem_list)
 
-                for idx, prob in enumerate(st.session_state.problem_list):
-                    user_answer = st.session_state.user_answers.get(idx, "").strip()
-                    correct_answer = str(prob["정답"]).strip()
+            for idx, prob in enumerate(st.session_state.problem_list):
+                user_answer = st.session_state.user_answers.get(idx, "").strip()
+                correct_answer = str(prob["정답"]).strip()
 
-                    if user_answer == correct_answer:
-                        st.success(f"문제 {idx + 1}: 정답 🎉")
-                        correct_count += 1
-                    else:
-                        st.error(f"문제 {idx + 1}: 오답 ❌ (정답: {correct_answer})")
-                        with st.expander(f"문제 {idx + 1} 해설 보기"):
-                            st.info(prob.get("explanation", "해설이 등록되지 않았습니다."))
+                # 시도 기록 저장
+                cursor.execute('''
+                    INSERT INTO attempts (문제ID, 사용자가입력한정답, 실제정답, 정답여부)
+                    VALUES (?, ?, ?, ?)
+                ''', (prob['id'], user_answer, correct_answer, '정답' if user_answer == correct_answer else '오답'))
+                conn.commit()
 
-                        feedback = st.text_area(f"문제 {idx + 1} 피드백 작성", key=f"feedback_{idx}")
-                        if st.button(f"문제 {idx + 1} 피드백 저장", key=f"save_feedback_{idx}"):
-                            save_feedback(prob["id"], feedback)
-                            st.success("피드백이 저장되었습니다.")
-
-                st.markdown(f"### 🎯 최종 정답률: **{correct_count} / {total}** ({(correct_count/total)*100:.2f}%)")
-
-                if st.button("다시 풀기"):
-                    for key in list(st.session_state.keys()):
-                        if key.startswith("answer_") or key.startswith("feedback_") or key in ["problem_list", "user_answers", "show_problems", "show_results"]:
-                            del st.session_state[key]
-                    st.rerun()
-
-    col1, col2 = st.columns([2, 1])  # 문제/선택지 | 풀이/결과
-
-    with col1:
-        st.markdown("#### 문제 출처 및 생성")
-        question_source = st.selectbox("문제 출처 선택", ["건축기사 기출문제", "건축시공 기출문제"])
-        if question_source == "건축기사 기출문제":
-            if st.button("CSV 문제 불러오기"):
-                csv_problem = generate_variation_question(df)
-                if csv_problem:
-                    csv_problem["유형"] = "건축기사 기출문제"
-                    save_problem_to_db(csv_problem)
-                    st.session_state.current_problem = csv_problem
-                    st.session_state.submitted_answer = False
-                    st.success("건축기사 기출문제가 준비되었습니다!")
-        else:
-            gpt_question_type = st.selectbox("GPT 문제 유형 선택", ["객관식", "주관식"])
-            if st.button("GPT 문제 생성"):
-                new_prob = generate_new_problem(question_type=gpt_question_type, source="건축시공 기출문제")
-                if new_prob:
-                    st.session_state.current_problem = new_prob
-                    st.session_state.submitted_answer = False
-                    st.success("건축시공 기출문제가 생성되었습니다!")
-
-    if "current_problem" in st.session_state and st.session_state.current_problem is not None:
-        prob = st.session_state.current_problem
-
-        with col1:
-            st.markdown("#### 문제")
-            st.write(prob["문제"])
-
-            if prob["유형"] == "건축기사 기출문제" or ("모범답안" not in prob):
-                user_choice = st.radio("정답을 고르세요:", prob["선택지"])
-            else:
-                user_choice = st.text_area("답안을 입력하세요:")
-
-        with col2:
-            st.markdown("#### 풀이 및 해설")
-            if st.button("답안 제출"):
-                st.session_state.submitted_answer = True
-
-            if st.session_state.submitted_answer:
-                correct = False
-                if prob["유형"] == "건축기사 기출문제" or ("모범답안" not in prob):
-                    correct_index = int(prob["정답"])
-                    correct_choice = prob["선택지"][correct_index - 1]
-                    if user_choice.strip() == correct_choice.strip():
-                        st.success("정답입니다!")
-                        correct = True
-                    else:
-                        st.error(f"오답입니다. 정답은 '{correct_choice}'")
+                if user_answer == correct_answer:
+                    st.success(f"문제 {idx + 1}: 정답 🎉")
+                    correct_count += 1
                 else:
-                    correct_text = prob["모범답안"]
-                    if user_choice.strip() == correct_text.strip():
-                        st.success("정답입니다!")
-                        correct = True
-                    else:
-                        st.error(f"오답입니다. 모범답안: {correct_text}")
+                    st.error(f"문제 {idx + 1}: 오답 ❌ (정답: {correct_answer})")
+                    with st.expander(f"문제 {idx + 1} 해설 보기"):
+                        st.info(prob.get("해설", "해설이 등록되지 않았습니다."))
+                    feedback = st.text_area(f"문제 {idx + 1} 피드백 작성", key=f"feedback_{idx}")
+                    if st.button(f"문제 {idx + 1} 피드백 저장", key=f"save_feedback_{idx}"):
+                        cursor.execute('''
+                            INSERT INTO feedback (문제ID, 피드백) VALUES (?, ?)
+                        ''', (prob['id'], feedback))
+                        conn.commit()
+                        st.success("피드백이 저장되었습니다.")
 
-                record_attempt(
-                    user_id=st.session_state.get("username", "guest"),
-                    problem_id=prob.get("id", 0),
-                    user_answer=user_choice,
-                    is_correct=int(correct)
-                )
+            st.markdown(f"### 🎯 최종 정답률: **{correct_count} / {total}** ({(correct_count/total)*100:.2f}%)")
 
-                # 해설 표시
-                explanation = prob.get("해설", {})
-                if isinstance(explanation, str):
-                    try:
-                        explanation = json.loads(explanation)
-                    except:
-                        explanation = {"자세한해설": "해설 없음", "핵심요약": []}
-                st.write("**📘 자세한 해설**")
-                st.write(explanation.get("자세한해설", "해설 없음"))
-                st.write("**📌 핵심 요약**")
-                for point in explanation.get("핵심요약", []):
-                    st.markdown(f"- {point}")
+            if st.button("다시 풀기"):
+                for key in list(st.session_state.keys()):
+                    if key.startswith("answer_") or key in ["problem_list", "user_answers", "show_problems", "show_results"]:
+                        del st.session_state[key]
+                st.rerun()
 
-                # 피드백 입력
-                st.markdown("---")
-                user_feedback = st.text_area("💬 피드백을 남겨주세요 (선택사항)")
-                if st.button("피드백 제출"):
-                    record_feedback(
-                        st.session_state.get("username", "guest"),
-                        prob.get("id", 0),
-                        user_feedback
-                    )
-                    st.success("피드백이 제출되었습니다!")
+# ============================== 관리자 모드 ==============================
 
-# --- 관리자 모드 ---
-if st.session_state.user_role == "admin":
-    with tab_admin:
-        st.subheader("🛠 문제 관리")
+with tabs[1]:
+    if st.session_state.user_role != "admin":
+        st.warning("관리자만 접근할 수 있습니다.")
+    else:
+        st.header("문제 관리 (관리자 전용)")
 
-        st.markdown("#### 📂 CSV 문제 파일 업로드 (관리자 전용)")
-        uploaded_file = st.file_uploader("CSV 파일을 업로드하세요", type="csv")
+        # 문제 생성 (GPT)
+        st.subheader("OpenAI 문제 생성")
+        if st.button("GPT 문제 생성 (객관식)"):
+            generate_openai_problem("객관식")
+            st.success("GPT 기반 객관식 문제 생성 완료!")
 
-        if uploaded_file:
-            try:
-                df = pd.read_csv(uploaded_file)
-                st.success("CSV 파일이 성공적으로 업로드되었습니다.")
-            except:
-                st.error("CSV 파일을 읽는 중 오류가 발생했습니다.")
+        if st.button("GPT 문제 생성 (주관식)"):
+            generate_openai_problem("주관식")
+            st.success("GPT 기반 주관식 문제 생성 완료!")
 
-        col1, col2 = st.columns([2, 1])
-
-    # 왼쪽: 문제 선택 및 편집
-        with col1:
-            st.markdown("#### 🔧 문제 선택 및 편집")
-
-            problems = get_all_problems_dict()
-            source_filter_dashboard = st.selectbox(
-                "문제 출처(유형) 필터",
-                ["전체", "건축기사 기출문제", "건축시공 기출문제"],
-                key="filter_tab_admin"
-            )
-            if source_filter_dashboard != "전체":
-                problems = [p for p in problems if p["유형"] == source_filter_dashboard]
-
-            if problems:
-                problem_options = {f"{p['id']} - {p['question'][:30]}": p for p in problems}
-                selected_key = st.selectbox("편집할 문제 선택:", list(problem_options.keys()))
-                selected_problem = problem_options[selected_key]
-
-                # 편집 UI 코드 기존 그대로 유지
-
-            else:
-                st.info("해당 유형의 문제가 없습니다.")
-
-            st.markdown("#### ✏️ 문제 수정")
-
-            # 문제 필드 편집
-            edited_question = st.text_area("문제 내용", value=selected_problem["question"])
-            edited_choice1 = st.text_input("선택지 1", value=selected_problem["choice1"])
-            edited_choice2 = st.text_input("선택지 2", value=selected_problem["choice2"])
-            edited_choice3 = st.text_input("선택지 3", value=selected_problem["choice3"])
-            edited_choice4 = st.text_input("선택지 4", value=selected_problem["choice4"])
-            edited_answer = st.selectbox("정답 선택 (숫자)", ["1", "2", "3", "4"], index=int(selected_problem["answer"]) - 1)
-            edited_difficulty = st.slider("난이도", 1, 5, value=selected_problem["difficulty"])
-            edited_chapter = st.text_input("챕터 (예: 1)", value=selected_problem["chapter"])
-            edited_type = st.selectbox("문제 유형", ["건축기사 기출문제", "건축시공 기출문제"], index=0 if selected_problem["유형"] == "건축기사 기출문제" else 1)
-            edited_explanation = st.text_area("해설 (JSON 형식)", value=selected_problem["explanation"])
-
-            # 저장 버튼
-            if st.button("💾 수정 내용 저장"):
-                updated_problem = {
-                    "question": edited_question,
-                    "choice1": edited_choice1,
-                    "choice2": edited_choice2,
-                    "choice3": edited_choice3,
-                    "choice4": edited_choice4,
-                    "answer": edited_answer,
-                    "difficulty": edited_difficulty,
-                    "chapter": edited_chapter,
-                    "유형": edited_type,
-                    "explanation": edited_explanation
+        # CSV 파일 업로드
+        st.subheader("CSV 문제 업로드")
+        uploaded_file = st.file_uploader("CSV 파일 업로드 (관리자 전용)", type=["csv"])
+        if uploaded_file is not None:
+            df = pd.read_csv(uploaded_file)
+            for _, row in df.iterrows():
+                problem_data = {
+                    "문제": row['문제'],
+                    "선택지": [row.get(f'선택지{i}', None) for i in range(1, 5)],
+                    "정답": row['정답'],
+                    "해설": row['해설'],
+                    "문제형식": row['문제형식'],
+                    "문제출처": "건축기사 기출문제",
+                    "id": None
                 }
-                update_problem_in_db(selected_problem["id"], updated_problem)
-                st.success("문제가 성공적으로 수정되었습니다.")
+                save_problem_to_db(problem_data)
+            st.success("CSV 업로드가 완료되었습니다!")
 
-        # 오른쪽: 활동내역, 피드백, 알림
-        with col2:
-            st.markdown("#### 📋 활동 및 피드백")
+        # 문제 목록 조회 및 편집
+        st.subheader("문제 목록")
+        problems = get_all_problems_dict()
+        for prob in problems:
+            with st.expander(f"문제 ID {prob['id']}: {prob['문제'][:30]}..."):
+                edited_problem = st.text_area("문제", prob['문제'], key=f"edit_question_{prob['id']}")
+                edited_choices = [
+                    st.text_input(f"선택지 {i+1}", prob['선택지'][i], key=f"edit_choice_{i}_{prob['id']}") for i in range(4)
+                ]
+                edited_answer = st.text_input("정답", prob['정답'], key=f"edit_answer_{prob['id']}")
+                edited_explanation = st.text_area("해설", prob['해설'], key=f"edit_explanation_{prob['id']}")
+                if st.button("문제 수정 저장", key=f"save_edit_{prob['id']}"):
+                    updated_data = {
+                        "문제": edited_problem,
+                        "선택지": edited_choices,
+                        "정답": edited_answer,
+                        "해설": edited_explanation,
+                        "문제형식": prob['문제형식'],
+                        "문제출처": prob['문제출처']
+                    }
+                    update_problem_in_db(prob['id'], updated_data)
+                    st.success("문제가 수정되었습니다!")
 
-            filter_user = st.text_input("사용자명 필터")
-            date_range = st.date_input("날짜 범위 선택", [])
-            query = "SELECT * FROM attempts"
-            params, conditions = [], []
-            if filter_user:
-                conditions.append("user_id = ?")
-                params.append(filter_user)
-            if len(date_range) == 2:
-                conditions.append("DATE(attempt_time) BETWEEN ? AND ?")
-                params.extend([date_range[0].strftime("%Y-%m-%d"), date_range[1].strftime("%Y-%m-%d")])
-            if conditions:
-                query += " WHERE " + " AND ".join(conditions)
-            query += " ORDER BY attempt_time DESC"
-            conn = sqlite3.connect("problems.db")
-            filtered_attempts = pd.read_sql_query(query, conn, params=params)
-            conn.close()
-            if not filtered_attempts.empty:
-                st.dataframe(filtered_attempts)
-            else:
-                st.info("해당 활동 내역 없음.")
+                if st.button("문제 삭제", key=f"delete_{prob['id']}"):
+                    delete_problem_from_db(prob['id'])
+                    st.warning("문제가 삭제되었습니다!")
 
-            st.markdown("#### 💬 피드백 보기")
-            feedback_df = get_feedback_with_problem()
-            if not feedback_df.empty:
-                st.dataframe(feedback_df)
-            else:
-                st.info("피드백 없음.")
+# ============================== 통계 및 대시보드 ==============================
 
-            st.markdown("#### ⚠️ 낮은 정답률 챕터")
-            chapter_accuracy = get_chapter_accuracy()
-            low_accuracy = chapter_accuracy[chapter_accuracy["accuracy_percentage"] <= 50]
-            if not low_accuracy.empty:
-                st.warning("정답률이 낮은 챕터가 있습니다.")
-                st.dataframe(low_accuracy)
-            else:
-                st.info("정답률이 낮은 챕터가 없습니다.")
+with tabs[2]:
+    st.header("📊 통계 및 대시보드")
 
-# --- 통계 및 대시보드 ---
-with tab_dashboard:
-    st.subheader("📊 학습 통계")
+    cursor.execute("SELECT 정답여부 FROM attempts")
+    results = cursor.fetchall()
+    if results:
+        df = pd.DataFrame(results, columns=['정답여부'])
+        summary = df['정답여부'].value_counts()
+        st.subheader("전체 정답률")
+        st.bar_chart(summary)
+    else:
+        st.write("풀이 기록이 없습니다.")
 
-    col1, col2 = st.columns([2, 1])
-
-    # 왼쪽: 문제 및 주제 분포 시각화
-    with col1:
-        st.markdown("#### 📘 문제 통계 시각화")
-
-        problems_all = get_all_problems_dict()
-        if st.session_state.user_role == "admin":
-            source_filter_dashboard = st.selectbox(
-                "문제 출처(유형) 필터",
-                ["전체", "건축기사 기출문제", "건축시공 기출문제"],
-                key="filter_tab3_admin"
-            )
-            if source_filter_dashboard != "전체":
-                problems_all = [p for p in problems_all if p["유형"] == source_filter_dashboard]
-
-        if problems_all:
-            df_stats = pd.DataFrame(problems_all)
-            st.write("전체 문제 개수:", len(df_stats))
-            st.bar_chart(df_stats["유형"].value_counts())
-            st.bar_chart(df_stats["difficulty"].value_counts().sort_index())
-            st.bar_chart(df_stats["chapter"].value_counts())
-        else:
-            st.info("저장된 문제가 없습니다.")
-
-    # 오른쪽: 정답률 통계
-    with col2:
-        st.markdown("#### 📌 정답률 및 사용자 통계")
-
-        if st.session_state.user_role == "admin":
-            st.markdown("**사용자별 정확도**")
-            user_stats = get_user_stats()
-            if not user_stats.empty:
-                st.bar_chart(user_stats.set_index("user_id")["accuracy_percentage"])
-            else:
-                st.info("사용자 통계 없음.")
-
-        if st.session_state.user_role != "admin":
-            user_id = st.session_state.username
-            def get_personal_stats(user_id):
-                conn = sqlite3.connect("problems.db")
-                query = """
-                SELECT user_id, COUNT(*) AS total_attempts, 
-                       SUM(is_correct) AS correct_attempts, 
-                       ROUND(AVG(is_correct)*100, 2) AS accuracy_percentage
-                FROM attempts
-                WHERE user_id = ?
-                GROUP BY user_id;
-                """
-                return pd.read_sql_query(query, conn, params=(user_id,))
-            personal_stats = get_personal_stats(user_id)
-            if not personal_stats.empty:
-                st.bar_chart(personal_stats.set_index("user_id")["accuracy_percentage"])
-            else:
-                st.info("개인 통계 없음.")
+    st.subheader("문제 유형별 시도 기록")
+    cursor.execute("""
+        SELECT 문제형식, COUNT(*) FROM problems 
+        JOIN attempts ON problems.id = attempts.문제ID
+        GROUP BY 문제형식
+    """)
+    data = cursor.fetchall()
+    if data:
+        df = pd.DataFrame(data, columns=['문제형식', '시도 수'])
+        st.bar_chart(df.set_index('문제형식'))
+    else:
+        st.write("문제풀이 기록이 없습니다.")
 
 
