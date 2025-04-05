@@ -769,7 +769,6 @@ with tabs[1]:
             generate_openai_problem("주관식")
             st.success("GPT 기반 주관식 문제 생성 완료!")
 
-        # CSV 파일 업로드
         st.subheader("CSV 문제 업로드")
         uploaded_file = st.file_uploader("CSV 파일 업로드 (관리자 전용)", type=["csv"])
         if uploaded_file is not None:
