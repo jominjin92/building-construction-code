@@ -692,6 +692,7 @@ with tabs[0]:
                         st.session_state.problem_list.extend(prob)
 
         if st.session_state.get("show_problems", False):
+            for idx, prob in enumerate(st.session_state.problem_list):
             st.markdown(f"### 문제 {idx + 1}: {prob['문제']}")
             unique_key = f"answer_{idx}_{prob['문제형식']}_{prob['문제출처']}"
 
