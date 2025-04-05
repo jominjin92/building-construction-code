@@ -9,7 +9,9 @@ import logging
 import schedule
 import time
 import threading
+import uuid
 
+problem['id'] = str(uuid.uuid4())
 logging.basicConfig(level=logging.INFO, force=True)
 
 # ---------------------
@@ -694,16 +696,17 @@ with tabs[0]:
                         st.session_state.problem_list.extend(prob)
 
         if st.session_state.get("show_problems", False):
-            for prob in st.session_state.problem_list:
+            for idx, prob in enumerate(st.session_state.problem_list):
                 st.markdown(f"### 문제: {prob['문제']}")
-                unique_key = f"answer_{prob['id']}_{prob['문제형식']}_{prob['문제출처']}"
+                unique_key = f"answer_{idx}_{prob.get('id', idx)}_{prob['문제형식']}_{prob['문제출처']}"
 
                 if prob["문제형식"] == "객관식":
                     answer = st.radio("선택지", prob["선택지"], key=unique_key)
                 else:
                     answer = st.text_area("답안을 입력해주세요.", key=unique_key)
 
-                st.session_state.user_answers[prob["id"]] = answer
+                problem_key = prob.get("id", idx)
+                st.session_state.user_answers[problem_key] = answer
 
             # 2. 채점 결과 출력 부분 안정성 강화 (ZeroDivisionError 방지)
                 correct_count = sum(1 for prob in st.session_state.problem_list if prob.get("is_correct", False))
@@ -726,7 +729,8 @@ with tabs[0]:
                 st.session_state.user_answers[idx] = answer
 
             if st.button("채점하기"):
-                st.session_state.show_results = True
+                problem_key = prob.get("id", idx)
+                st.session_state.show_results[problem_key] = True
                 st.rerun()
 
         if st.session_state.get("show_results", False):
@@ -818,11 +822,13 @@ with tabs[1]:
                         st.text_input(f"선택지 {i+1}", prob['선택지'][i] if i < len(prob['선택지']) else "", key=f"edit_choice_{i}_{prob['id']}")
                         for i in range(4)
                     ]
+                    problem_key = prob.get("id", prob["문제"][:10])
                     edited_answer = st.selectbox(
                         "정답 선택 (숫자)",
                         ["1", "2", "3", "4"],
                         index=int(prob['정답']) - 1 if prob['정답'].isdigit() and int(prob['정답']) in range(1, 5) else 0,
-                        key=f"edit_answer_{prob['id']}"
+                        problem_key = prob.get("id", prob["문제"][:10])
+                        key=f"edit_answer_{problem_key}"
                     )
                 else:
                     edited_choices = ["", "", "", ""]  # 주관식은 선택지 없음
