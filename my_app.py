@@ -68,8 +68,7 @@ if not st.session_state["logged_in"]:
             st.session_state["username"] = username
             st.session_state["user_role"] = "admin" if username == "admin" else "user"
             st.success("로그인 성공!")
-            # 최신 버전에서 st.experimental_rerun()을 사용할 수 있다면 활성화
-            # st.experimental_rerun()
+            # st.rerun()
         else:
             st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
     st.stop()  # 로그인되지 않은 경우 아래의 코드는 실행되지 않음
@@ -672,7 +671,7 @@ with tab_problem:
         if st.session_state.problem_list:
             st.session_state.show_problems = True
             st.session_state.show_results = False
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.warning("문제를 생성할 수 없습니다. CSV 파일을 확인해주세요.")
 
@@ -692,7 +691,7 @@ with tab_problem:
 
             if st.button("채점하기"):
                 st.session_state.show_results = True
-                st.experimental_rerun()
+                st.rerun()
 
         with col2:
             if st.session_state.get("show_results", False):
@@ -723,7 +722,7 @@ with tab_problem:
                     for key in list(st.session_state.keys()):
                         if key.startswith("answer_") or key.startswith("feedback_") or key in ["problem_list", "user_answers", "show_problems", "show_results"]:
                             del st.session_state[key]
-                    st.experimental_rerun()
+                    st.rerun()
 
     with col1:
         st.markdown("#### 문제 출처 및 생성")
