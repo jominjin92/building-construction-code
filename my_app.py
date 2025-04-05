@@ -663,15 +663,39 @@ with tabs[0]:
             st.session_state.user_answers = {}
 
             if selected_source == "건축기사 기출문제":
-                st.warning("CSV 기반 문제 출제는 추후 업데이트 예정입니다!")
-            else:
-                st.session_state.problem_list.extend(load_problems_from_db("객관식", num_objective))
-                st.session_state.problem_list.extend(load_problems_from_db("주관식", num_subjective))
+                # CSV 파일이 존재하는지 확인 후 문제 불러오기
+                try:
+                    df = pd.read_csv("문제_데이터.csv")  # 사용 중인 CSV 파일명으로 변경
+                    if not df.empty:
+                        for _ in range(num_objective):
+                            prob = generate_variation_question(df, question_type="객관식")
+                            if prob:
+                                st.session_state.problem_list.append(prob)
+                        st.success(f"CSV에서 문제 {len(st.session_state.problem_list)}개 불러오기 완료!")
+                    else:
+                        st.warning("CSV 파일에 문제가 없습니다. 파일을 확인해주세요!")
+                except FileNotFoundError:
+                    st.error("CSV 파일이 존재하지 않습니다. 관리자 모드에서 업로드해주세요!")
+                except Exception as e:
+                    st.error(f"문제 불러오기 중 오류 발생: {e}")
 
-            if st.session_state.problem_list:
-                st.session_state.show_problems = True
-                st.session_state.show_results = False
-                st.rerun()
+            elif selected_source == "건축시공 기출문제":
+                # OpenAI 기반 문제 불러오기 (이미 정상 작동 중)
+                for _ in range(num_objective):
+                    prob = load_problems_from_db("객관식", 1)
+                    if prob:
+                        st.session_state.problem_list.extend(prob)
+                for _ in range(num_subjective):
+                    prob = load_problems_from_db("주관식", 1)
+                    if prob:
+                        st.session_state.problem_list.extend(prob)
+
+            # 2. 채점 결과 출력 부분 안정성 강화 (ZeroDivisionError 방지)
+            total = len(st.session_state.problem_list)
+            if total == 0:
+                st.warning("문제가 없습니다. 문제를 먼저 생성하거나 선택해주세요.")
+            else:
+                st.markdown(f"최종 정답률: **{correct_count} / {total}** ({(correct_count/total)*100:.2f}%)")
 
     with col2:
         if st.session_state.get("show_problems", False):
