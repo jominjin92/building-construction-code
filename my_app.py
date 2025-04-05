@@ -891,7 +891,7 @@ with tab_admin:
 
 # ============================== 통계 및 대시보드 ==============================
 
-with tab_dashboard
+with tab_dashboard:
     st.header("📊 통계 및 대시보드")
 
     cursor.execute("SELECT 정답여부 FROM attempts")
