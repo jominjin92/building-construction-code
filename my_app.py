@@ -297,15 +297,14 @@ def generate_variation_question(df, question_type=None):
     (건축기사 기출문제)
     """
     try:
+        # 객관식: 선택지가 모두 있는 경우
         if question_type == "객관식":
-            filtered_df = df[
-                (df['구분'] == "건축기사 기출문제") |
-                ((df['구분'] == "건축시공 기출문제"))  # 건축시공 기출문제는 객관식+주관식 둘 다라서 문제형식 필터 불필요
-            ]
+            filtered_df = df.dropna(subset=["선택지1", "선택지2", "선택지3", "선택지4"], how="any")
+        # 주관식: 선택지들이 모두 비어있는 경우
         elif question_type == "주관식":
-            # 현재 CSV에는 문제형식 구분이 없으므로,
-            # 주관식 문제를 식별할 수 있는 기준 필요 (ex: 선택지1~4가 비어있으면 주관식?)
-            filtered_df = df[df['구분'] == "건축시공 기출문제"]  # 모든 건축시공 기출문제 가져오기
+            filtered_df = df[
+                df[["선택지1", "선택지2", "선택지3", "선택지4"]].isnull().all(axis=1)
+            ]
         else:
             filtered_df = df
 
