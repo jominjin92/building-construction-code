@@ -535,12 +535,13 @@ def init_state():
 init_state()
 
 # ✅ 문제 불러오기 (DB 기반)
-def load_problems_from_csv():
+def load_csv_problems():
     try:
-        df = pd.read_csv("문제.csv")
+        df = pd.read_csv("456.csv")  # 파일명 사용자가 업로드한 것으로 지정
         problems = df.to_dict(orient='records')
         for problem in problems:
-            problem['id'] = str(uuid.uuid4())  # 고유 ID 부여
+            problem['id'] = str(uuid.uuid4())
+            problem['문제출처'] = '건축기사 기출문제'
         return problems
     except FileNotFoundError:
         st.warning("CSV 파일이 존재하지 않습니다. 관리자 모드에서 업로드해주세요!")
@@ -610,6 +611,46 @@ def generate_openai_problem(question_type):
     save_problem_to_db(problem_data)
     return problem_data
 
+# 문제 풀이 UI 출력 함수
+def display_problems():
+    correct_count = 0
+    total = len(st.session_state.problem_list)
+
+    for idx, prob in enumerate(st.session_state.problem_list):
+        st.markdown(f"### 문제 {idx + 1}: {prob['문제']}")
+        unique_key = f"answer_{idx}_{prob['id']}"
+
+        user_answer = st.radio(
+            f"답안 선택 (문제 {idx + 1})",
+            [prob['선택1'], prob['선택2'], prob['선택3'], prob['선택4']],
+            key=unique_key
+        )
+
+        st.session_state.user_answers[prob['id']] = user_answer
+
+        # 채점 버튼 (문제별)
+        if st.button(f"문제 {idx + 1} 채점하기", key=f"grade_{prob['id']}"):
+            is_correct = user_answer == prob['정답']
+            st.session_state.show_results[prob['id']] = is_correct
+            st.experimental_rerun()
+
+        # 결과 출력
+        if st.session_state.show_results.get(prob['id'], False):
+            if user_answer == prob['정답']:
+                st.success("정답입니다!")
+            else:
+                st.error(f"오답입니다. 정답: {prob['정답']}")
+                with st.expander("해설 보기"):
+                    st.info(prob['해설'])
+
+    # 전체 결과 출력
+    if total > 0:
+        correct_count = sum(
+            1 for prob in st.session_state.problem_list
+            if st.session_state.user_answers.get(prob['id']) == prob['정답']
+        )
+        st.markdown(f"### 총 정답 수: {correct_count} / {total}")
+
 # ✅ 전체 문제 조회 (관리자용)
 def get_all_problems_dict():
     cursor.execute("SELECT * FROM problems")
@@ -649,26 +690,14 @@ if "user_role" not in st.session_state:
 login()
 
 # 탭 구성
-with st.container():
-    tab_problem, tab_admin, tab_dashboard = st.tabs(["문제풀이", "문제 관리", "통계 및 대시보드"])
+st.set_page_config(layout="wide")
+st.title("건축시공학 하이브리드 문제풀이 시스템 🎉")
 
-    with tab_problem:
-        st.header("문제풀이")
+tab_problem, tab_admin, tab_dashboard = st.tabs(["문제풀이", "문제 관리", "통계 및 대시보드"])
 
-        if st.session_state.get("show_problems", False):
-            for idx, prob in enumerate(st.session_state.problem_list):
-                st.markdown(f"### 문제: {prob['문제']}")
-                unique_key = f"answer_{idx}_{prob.get('id', idx)}_{prob['문제형식']}_{prob['문제출처']}"
-
-                if prob["문제형식"] == "객관식":
-                    answer = st.radio("선택지", prob["선택지"], key=unique_key)
-                else:
-                    answer = st.text_area("답안을 입력해주세요.", key=unique_key)
-
-                problem_key = prob.get("id", idx)
-                st.session_state.user_answers[problem_key] = answer
-
-    col1, col2 = st.columns([2, 1])
+with tab_problem:
+    st.subheader("문제풀이")
+    col1, col2 = st.columns([2, 4])  # 문제 출제 / 문제 풀이
 
     with col1:
         st.markdown("### 문제 출처 및 수 선택")
@@ -779,7 +808,7 @@ with st.container():
 
 # ============================== 관리자 모드 ==============================
 
-with tabs[1]:
+with tab_admin:
     if st.session_state.user_role != "admin":
         st.warning("관리자만 접근할 수 있습니다.")
     else:
@@ -862,7 +891,7 @@ with tabs[1]:
 
 # ============================== 통계 및 대시보드 ==============================
 
-with tabs[2]:
+with tab_dashboard
     st.header("📊 통계 및 대시보드")
 
     cursor.execute("SELECT 정답여부 FROM attempts")
