@@ -507,6 +507,8 @@ def generate_explanation(question_text, answer_text):
 
 # 문제 DB 저장 함수
 def save_problem_to_db(problem_data):
+    problem_data['id'] = str(uuid.uuid4())
+
     cursor.execute('''
         INSERT INTO problems (문제, 선택지1, 선택지2, 선택지3, 선택지4, 정답, 해설, 문제형식, 문제출처)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
