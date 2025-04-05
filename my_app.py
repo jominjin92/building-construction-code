@@ -824,12 +824,11 @@ with tabs[1]:
                     ]
                     problem_text = prob.get("문제", "")
                     problem_key = prob.get("id", problem_text[:10])
+
                     edited_answer = st.selectbox(
                         "정답 선택 (숫자)",
                         ["1", "2", "3", "4"],
                         index=int(prob['정답']) - 1 if prob['정답'].isdigit() and int(prob['정답']) in range(1, 5) else 0,
-                        problem_text = prob.get("문제", "")
-                        problem_key = prob.get("id", problem_text[:10])
                         key=f"edit_answer_{problem_key}"
                     )
                 else:
