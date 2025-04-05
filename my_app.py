@@ -636,87 +636,98 @@ st.markdown("""
 with tab_problem:
     st.subheader("📘 문제풀이")
 
-    col1, col2 = st.columns([2, 1])  # 문제/선택지 | 풀이/결과
+    # Step 1: 문제 출처 선택
+    st.markdown("### 🔍 문제 출처 선택")
+    selected_source = st.radio(
+        "문제 출처를 선택하세요:",
+        ("건축기사 기출문제", "건축시공 기출문제"),
+        key="selected_source"
+    )
 
-    # 문제 수 선택 (객관식 / 주관식)
-    st.markdown("### 📋 문제 수 선택")
-    num_objective = st.number_input("객관식 문제 수", min_value=0, value=3, step=1, key="num_objective")
-    num_subjective = st.number_input("주관식 문제 수", min_value=0, value=2, step=1, key="num_subjective")
+    # Step 2: 문제 수 선택
+    num_objective = 0
+    num_subjective = 0
+
+    if selected_source == "건축기사 기출문제":
+        st.markdown("### 📋 문제 수 선택 (건축기사 기출문제 - 객관식만)")
+        num_objective = st.number_input("객관식 문제 수", min_value=1, value=3, step=1, key="num_objective")
+    else:
+        st.markdown("### 📋 문제 수 선택 (건축시공 기출문제 - 객관식 + 주관식)")
+        num_objective = st.number_input("객관식 문제 수", min_value=0, value=3, step=1, key="num_objective")
+        num_subjective = st.number_input("주관식 문제 수", min_value=0, value=2, step=1, key="num_subjective")
 
     if st.button("문제 시작하기"):
         st.session_state.problem_list = []
-        st.session_state.user_answers = {}  # 딕셔너리로 관리 (문제 index: 답변)
+        st.session_state.user_answers = {}
 
-        # 객관식 문제 생성
-        for _ in range(num_objective):
-            prob = generate_variation_question(df, question_type="객관식")
-            if prob:
-                st.session_state.problem_list.append(prob)
+        # Step 3: 문제 생성
+        if num_objective > 0:
+            for _ in range(num_objective):
+                prob = generate_variation_question(df, question_type="객관식")
+                if prob:
+                    st.session_state.problem_list.append(prob)
 
-        # 주관식 문제 생성
-        for _ in range(num_subjective):
-            prob = generate_variation_question(df, question_type="주관식")
-            if prob:
-                st.session_state.problem_list.append(prob)
+        if selected_source == "건축시공 기출문제" and num_subjective > 0:
+            for _ in range(num_subjective):
+                prob = generate_variation_question(df, question_type="주관식")
+                if prob:
+                    st.session_state.problem_list.append(prob)
 
-        st.session_state.show_problems = True
-        st.session_state.show_results = False
-        st.experimental_rerun()
+        if st.session_state.problem_list:
+            st.session_state.show_problems = True
+            st.session_state.show_results = False
+            st.experimental_rerun()
+        else:
+            st.warning("문제를 생성할 수 없습니다. CSV 파일을 확인해주세요.")
 
-    # 문제 출력 (한 페이지 전체 출력)
+    # Step 4: 문제 출력
     if st.session_state.get("show_problems", False):
-        st.markdown("### 📝 문제 풀이")
-        for idx, prob in enumerate(st.session_state.problem_list):
-            st.markdown(f"**문제 {idx + 1}. {prob['문제']}**")
+        col1, col2 = st.columns([2, 1])  # 문제/선택지 | 풀이/결과
 
-            if prob["유형"] == "객관식":
-                answer = st.radio(
-                    "선택지", [prob["choice1"], prob["choice2"], prob["choice3"], prob["choice4"]],
-                    key=f"answer_{idx}"
-                )
-            else:
-                answer = st.text_input("답안을 입력하세요", key=f"answer_{idx}")
+        with col1:
+            st.markdown("### 📝 문제 풀이")
+            for idx, prob in enumerate(st.session_state.problem_list):
+                st.markdown(f"**문제 {idx + 1}. {prob['문제']}**")
+                if prob["문제형식"] == "객관식":
+                    answer = st.radio("선택지", prob["선택지"], key=f"answer_{idx}")
+                else:
+                    answer = st.text_input("답안을 입력하세요", key=f"answer_{idx}")
+                st.session_state.user_answers[idx] = answer
 
-            st.session_state.user_answers[idx] = answer
+            if st.button("채점하기"):
+                st.session_state.show_results = True
+                st.experimental_rerun()
 
-        if st.button("채점하기"):
-            st.session_state.show_results = True
-            st.experimental_rerun()
+        with col2:
+            if st.session_state.get("show_results", False):
+                st.markdown("### ✅ 채점 결과")
+                correct_count = 0
+                total = len(st.session_state.problem_list)
 
-    # 채점 결과 출력
-    if st.session_state.get("show_results", False):
-        st.markdown("### ✅ 채점 결과")
-        correct_count = 0
-        total = len(st.session_state.problem_list)
+                for idx, prob in enumerate(st.session_state.problem_list):
+                    user_answer = st.session_state.user_answers.get(idx, "").strip()
+                    correct_answer = str(prob["정답"]).strip()
 
-        for idx, prob in enumerate(st.session_state.problem_list):
-            user_answer = st.session_state.user_answers.get(idx, "")
-            correct_answer = str(prob["answer"])
-            problem_type = prob["유형"]
+                    if user_answer == correct_answer:
+                        st.success(f"문제 {idx + 1}: 정답 🎉")
+                        correct_count += 1
+                    else:
+                        st.error(f"문제 {idx + 1}: 오답 ❌ (정답: {correct_answer})")
+                        with st.expander(f"문제 {idx + 1} 해설 보기"):
+                            st.info(prob.get("explanation", "해설이 등록되지 않았습니다."))
 
-            if (problem_type == "객관식" and user_answer == correct_answer) or \
-               (problem_type == "주관식" and user_answer.strip() == correct_answer.strip()):
-                st.success(f"문제 {idx + 1}: 정답 🎉")
-                correct_count += 1
-            else:
-                st.error(f"문제 {idx + 1}: 오답 ❌ (정답: {correct_answer})")
+                        feedback = st.text_area(f"문제 {idx + 1} 피드백 작성", key=f"feedback_{idx}")
+                        if st.button(f"문제 {idx + 1} 피드백 저장", key=f"save_feedback_{idx}"):
+                            save_feedback(prob["id"], feedback)
+                            st.success("피드백이 저장되었습니다.")
 
-                # 선택적 해설 및 피드백
-                with st.expander(f"문제 {idx + 1} 해설 보기"):
-                    st.info(prob.get("explanation", "해설이 등록되지 않았습니다."))
+                st.markdown(f"### 🎯 최종 정답률: **{correct_count} / {total}** ({(correct_count/total)*100:.2f}%)")
 
-                feedback = st.text_area(f"문제 {idx + 1} 피드백 작성", key=f"feedback_{idx}")
-                if st.button(f"문제 {idx + 1} 피드백 저장"):
-                    save_feedback(prob["id"], feedback)
-                    st.success("피드백이 저장되었습니다.")
-
-        st.markdown(f"### 🎯 최종 정답률: **{correct_count} / {total}** ({(correct_count/total)*100:.2f}%)")
-
-        if st.button("다시 풀기"):
-            for key in list(st.session_state.keys()):
-                if key.startswith("answer_") or key.startswith("feedback_") or key in ["problem_list", "user_answers", "show_problems", "show_results"]:
-                    del st.session_state[key]
-            st.experimental_rerun()
+                if st.button("다시 풀기"):
+                    for key in list(st.session_state.keys()):
+                        if key.startswith("answer_") or key.startswith("feedback_") or key in ["problem_list", "user_answers", "show_problems", "show_results"]:
+                            del st.session_state[key]
+                    st.experimental_rerun()
 
     with col1:
         st.markdown("#### 문제 출처 및 생성")
