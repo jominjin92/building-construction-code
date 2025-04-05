@@ -669,8 +669,10 @@ with tabs[0]:
                     df = pd.read_csv("456.csv")  # 사용 중인 CSV 파일명으로 변경
                     if not df.empty:
                         for _ in range(num_objective):
-                            prob = generate_variation_question(df, question_type="객관식")
+                            prob = load_problems_from_db("객관식", 1)
                             if prob:
+                                for p in prob:
+                                    p["문제출처"] = "건축시공 기출문제"
                                 st.session_state.problem_list.append(prob)
                         st.success(f"CSV에서 문제 {len(st.session_state.problem_list)}개 불러오기 완료!")
                     else:
