@@ -665,7 +665,7 @@ with tabs[0]:
             if selected_source == "건축기사 기출문제":
                 # CSV 파일이 존재하는지 확인 후 문제 불러오기
                 try:
-                    df = pd.read_csv("문제_데이터.csv")  # 사용 중인 CSV 파일명으로 변경
+                    df = pd.read_csv("456.csv")  # 사용 중인 CSV 파일명으로 변경
                     if not df.empty:
                         for _ in range(num_objective):
                             prob = generate_variation_question(df, question_type="객관식")
