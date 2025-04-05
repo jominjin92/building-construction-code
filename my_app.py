@@ -524,23 +524,27 @@ def save_problem_to_db(problem_data):
     ))
     conn.commit()
 
+def init_state():
+    if 'problem_list' not in st.session_state:
+        st.session_state.problem_list = []
+    if 'show_problems' not in st.session_state:
+        st.session_state.show_problems = False
+    if 'user_answers' not in st.session_state:
+        st.session_state.user_answers = []
+
+init_state()
+
 # ✅ 문제 불러오기 (DB 기반)
-def load_problems_from_db(question_type, num_questions):
-    query = "SELECT * FROM problems WHERE 문제형식=? AND 문제출처='건축시공 기출문제' ORDER BY RANDOM() LIMIT ?"
-    cursor.execute(query, (question_type, num_questions))
-    rows = cursor.fetchall()
-    problem_list = []
-    for row in rows:
-        problem_list.append({
-            "문제": row[1],
-            "선택지": [row[2], row[3], row[4], row[5]] if row[2] else [],
-            "정답": row[6],
-            "해설": row[7],
-            "문제형식": row[8],
-            "문제출처": row[9],
-            "id": row[0]
-        })
-    return problem_list
+def load_problems_from_csv():
+    try:
+        df = pd.read_csv("문제.csv")
+        problems = df.to_dict(orient='records')
+        for problem in problems:
+            problem['id'] = str(uuid.uuid4())  # 고유 ID 부여
+        return problems
+    except FileNotFoundError:
+        st.warning("CSV 파일이 존재하지 않습니다. 관리자 모드에서 업로드해주세요!")
+        return []
 
 # ✅ 문제 수정 함수 (관리자용)
 def update_problem_in_db(problem_id, updated_data):
@@ -645,11 +649,24 @@ if "user_role" not in st.session_state:
 login()
 
 # 탭 구성
-tabs = st.tabs(["문제풀이", "문제 관리", "통계 및 대시보드"])
+with st.container():
+    tab_problem, tab_admin, tab_dashboard = st.tabs(["문제풀이", "문제 관리", "통계 및 대시보드"])
 
-# 1. 문제풀이 탭
-with tabs[0]:
-    st.header("문제풀이")
+    with tab_problem:
+        st.header("문제풀이")
+
+        if st.session_state.get("show_problems", False):
+            for idx, prob in enumerate(st.session_state.problem_list):
+                st.markdown(f"### 문제: {prob['문제']}")
+                unique_key = f"answer_{idx}_{prob.get('id', idx)}_{prob['문제형식']}_{prob['문제출처']}"
+
+                if prob["문제형식"] == "객관식":
+                    answer = st.radio("선택지", prob["선택지"], key=unique_key)
+                else:
+                    answer = st.text_area("답안을 입력해주세요.", key=unique_key)
+
+                problem_key = prob.get("id", idx)
+                st.session_state.user_answers[problem_key] = answer
 
     col1, col2 = st.columns([2, 1])
 
@@ -695,19 +712,6 @@ with tabs[0]:
                     prob = load_problems_from_db("주관식", 1)
                     if prob:
                         st.session_state.problem_list.extend(prob)
-
-        if st.session_state.get("show_problems", False):
-            for idx, prob in enumerate(st.session_state.problem_list):
-                st.markdown(f"### 문제: {prob['문제']}")
-                unique_key = f"answer_{idx}_{prob.get('id', idx)}_{prob['문제형식']}_{prob['문제출처']}"
-
-                if prob["문제형식"] == "객관식":
-                    answer = st.radio("선택지", prob["선택지"], key=unique_key)
-                else:
-                    answer = st.text_area("답안을 입력해주세요.", key=unique_key)
-
-                problem_key = prob.get("id", idx)
-                st.session_state.user_answers[problem_key] = answer
 
             # 2. 채점 결과 출력 부분 안정성 강화 (ZeroDivisionError 방지)
                 correct_count = sum(1 for prob in st.session_state.problem_list if prob.get("is_correct", False))
