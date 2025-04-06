@@ -13,8 +13,6 @@ import uuid
 
 logging.basicConfig(level=logging.INFO, force=True)
 
-st.set_page_config(layout="wide")
-
 # ---------------------
 # 1) API 키 설정
 # ---------------------
@@ -25,6 +23,7 @@ else:
     st.stop()
 
 # Streamlit 기본 설정
+st.set_page_config(layout="wide")
 st.title("건축시공학 문제 생성 및 풀이")
 
 # DB 연결 및 테이블 생성
@@ -507,9 +506,6 @@ def generate_explanation(question_text, answer_text):
 
 # 문제 DB 저장 함수
 def save_problem_to_db(problem_data):
-    conn = sqlite3.connect('problems.db')  # ✅ 수정: 문제 DB로 통일
-    cursor = conn.cursor()
-
     problem_data['id'] = str(uuid.uuid4())
 
     cursor.execute('''
@@ -551,36 +547,6 @@ def load_csv_problems():
         st.warning("CSV 파일이 존재하지 않습니다. 관리자 모드에서 업로드해주세요!")
         return []
 
-def load_problems_from_db(question_type, limit=1, db_path="problems.db"):
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-
-    c.execute("""
-        SELECT id, question, choice1, choice2, choice3, choice4, answer, explanation, difficulty, chapter, type 
-        FROM problems 
-        WHERE type = ?
-        ORDER BY RANDOM() 
-        LIMIT ?
-    """, (question_type, limit))
-
-    rows = c.fetchall()
-    conn.close()
-
-    problems = []
-    for row in rows:
-        problems.append({
-            "id": row[0],
-            "문제": row[1],
-            "선택지": [row[2], row[3], row[4], row[5]],
-            "정답": row[6],
-            "해설": row[7],
-            "난이도": row[8],
-            "챕터": row[9],
-            "문제형식": "객관식" if row[10] == "건축기사 기출문제" else "주관식",
-            "문제출처": row[10]
-        })
-    return problems
-
 # ✅ 문제 수정 함수 (관리자용)
 def update_problem_in_db(problem_id, updated_data):
     cursor.execute('''
@@ -607,18 +573,15 @@ def delete_problem_from_db(problem_id):
 # OpenAI 문제 생성 함수
 def generate_openai_problem(question_type):
     prompt = f"""
-    당신은 건축시공학 교수입니다. 건축시공학과 관련된 {question_type} 문제를 하나 출제하세요.
-    아래 형식의 JSON 으로 출력하세요. JSON 외의 텍스트는 출력하지 마세요.
+    당신은 건축시공학 교수입니다. 건축시공학과 관련된 {question_type} 문제를 하나 출제하고, 선택지와 정답, 해설을 제공하세요.
 
-    {{
-      "문제": "...",
-      "선택지1": "...",
-      "선택지2": "...",
-      "선택지3": "...",
-      "선택지4": "...",
-      "정답": "1", 
-      "해설": "..."
-    }}
+    - 문제:
+    - 선택지1:
+    - 선택지2:
+    - 선택지3:
+    - 선택지4:
+    - 정답 번호 (1~4 중 하나):
+    - 해설:
     """
 
     response = openai.ChatCompletion.create(
@@ -628,33 +591,25 @@ def generate_openai_problem(question_type):
     )
 
     result = response['choices'][0]['message']['content']
+    lines = result.strip().split("\n")
 
-    try:
-        # JSON 파싱
-        result_json = json.loads(result)
+    problem_data = {
+        "문제": lines[0].replace("문제:", "").strip(),
+        "선택지": [
+            lines[1].split(":")[1].strip(),
+            lines[2].split(":")[1].strip(),
+            lines[3].split(":")[1].strip(),
+            lines[4].split(":")[1].strip()
+        ],
+        "정답": lines[5].split(":")[1].strip(),
+        "문제출처": "건축시공 기출문제",
+        "문제형식": question_type,
+        "해설": lines[6].replace("해설:", "").strip(),
+        "id": None
+    }
 
-        problem_data = {
-            "문제": result_json.get("문제", ""),
-            "선택지": [
-                result_json.get("선택지1", ""),
-                result_json.get("선택지2", ""),
-                result_json.get("선택지3", ""),
-                result_json.get("선택지4", "")
-            ],
-            "정답": result_json.get("정답", ""),
-            "문제출처": "건축시공 기출문제",
-            "문제형식": question_type,
-            "해설": result_json.get("해설", ""),
-            "id": None
-        }
-
-        save_problem_to_db(problem_data)
-        return problem_data
-
-    except json.JSONDecodeError as e:
-        logging.error(f"GPT 응답 JSON 파싱 오류: {e}")
-        st.error("GPT 응답을 JSON으로 파싱하는 중 오류가 발생했습니다. 프롬프트를 다시 확인하세요.")
-        return None
+    save_problem_to_db(problem_data)
+    return problem_data
 
 # 문제 풀이 UI 출력 함수
 def display_problems():
@@ -735,6 +690,7 @@ if "user_role" not in st.session_state:
 login()
 
 # 탭 구성
+st.set_page_config(layout="wide")
 st.title("건축시공학 하이브리드 문제풀이 시스템 🎉")
 
 tab_problem, tab_admin, tab_dashboard = st.tabs(["문제풀이", "문제 관리", "통계 및 대시보드"])
@@ -759,19 +715,14 @@ with tab_problem:
             if selected_source == "건축기사 기출문제":
                 # CSV 파일이 존재하는지 확인 후 문제 불러오기
                 try:
-                    df = pd.read_csv("456.csv")
+                    df = pd.read_csv("456.csv")  # 사용 중인 CSV 파일명으로 변경
                     if not df.empty:
-                        sampled_df = df.sample(n=num_objective, random_state=42)
-                        problems = sampled_df.to_dict(orient='records')
-                        for prob in problems:
-                            prob['id'] = str(uuid.uuid4())
-                            prob['문제출처'] = '건축기사 기출문제'
-                            prob['문제형식'] = '객관식'  # ✅ 이거 추가!!!
-                            prob['선택지'] = [prob.get('선택지1', ''), prob.get('선택지2', ''), prob.get('선택지3', ''), prob.get('선택지4', '')]
-                            prob['정답'] = str(prob.get('정답', ''))
-                            prob['해설'] = prob.get('해설', '')
-                            st.session_state.problem_list.append(prob)  # ✅ 이 부분이 핵심!!
-
+                        for _ in range(num_objective):
+                            prob_list = load_problems_from_db("객관식", 1)
+                            if prob_list:
+                                for prob in prob_list:
+                                    prob["문제출처"] = "건축시공 기출문제"
+                                    st.session_state.problem_list.append(prob)
                         st.success(f"CSV에서 문제 {len(st.session_state.problem_list)}개 불러오기 완료!")
                     else:
                         st.warning("CSV 파일에 문제가 없습니다. 파일을 확인해주세요!")
