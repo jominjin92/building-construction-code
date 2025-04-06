@@ -501,9 +501,9 @@ json) 없이 순수 JSON만 출력해 주세요.
         return {"자세한해설": "해설 생성 중 오류가 발생했습니다.", "핵심요약": []}
 
 # 문제 DB 저장 함수
-def save_problem_to_db(problem_data):
+def save_problem_to_db(problem_data, db_path="problems.db"):
     conn = sqlite3.connect(db_path)
-    cursor = conn.cursor('problems.db')
+    cursor = conn.cursor()
 
     choices = problem_data.get("선택지", ["", "", "", ""])
     while len(choices) < 4:
@@ -522,7 +522,7 @@ def save_problem_to_db(problem_data):
         choices[3],
         problem_data.get("정답", ""),
         problem_data.get("해설", ""),
-        3,  # difficulty 기본값 (원하면 더 정교하게 처리 가능)
+        3,  # difficulty 기본값
         "1",  # chapter 기본값
         problem_data.get("문제출처", "건축기사 기출문제")
     ))
