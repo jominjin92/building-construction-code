@@ -10,6 +10,7 @@ import schedule
 import time
 import threading
 import uuid
+import base64
 
 logging.basicConfig(level=logging.INFO, force=True)
 
@@ -648,6 +649,16 @@ def generate_openai_problem(question_type):
         st.error("GPT 응답을 JSON으로 파싱하는 중 오류가 발생했습니다. 프롬프트를 다시 확인하세요.")
         return None
 
+def export_problems_to_csv():
+    conn = sqlite3.connect("problems.db")
+    df = pd.read_sql_query("SELECT * FROM problems", conn)
+    df.to_csv("problems_export.csv", index=False, encoding="utf-8-sig")
+    conn.close()
+
+# 문제 생성 후 호출
+save_problem_to_db(problem_data)
+export_problems_to_csv()
+
 # 문제 풀이 UI 출력 함수
 def display_problems():
     correct_count = 0
@@ -945,6 +956,23 @@ with tab_admin:
                 if st.button("문제 삭제", key=f"delete_{prob['id']}"):
                     delete_problem_from_db(prob['id'])
                     st.warning("문제가 삭제되었습니다!")
+
+        # 문제 저장 버튼
+        if st.button("문제 CSV로 내보내기"):
+            export_problems_to_csv()
+            st.success("문제를 CSV 파일로 저장했습니다.")
+
+def get_table_download_link(file_path):
+    with open(file_path, 'rb') as f:
+        data = f.read()
+    b64 = base64.b64encode(data).decode()
+    href = f'<a href="data:file/csv;base64,{b64}" download="problems_export.csv">📥 문제 CSV 다운로드</a>'
+    return href
+
+if st.button("문제 CSV로 내보내기"):
+    export_problems_to_csv()
+    st.success("문제를 CSV 파일로 저장했습니다.")
+    st.markdown(get_table_download_link("problems_export.csv"), unsafe_allow_html=True)
 
 # ============================== 통계 및 대시보드 ==============================
 
