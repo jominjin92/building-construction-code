@@ -951,6 +951,9 @@ with tab_admin:
 with tab_dashboard:
     st.header("📊 통계 및 대시보드")
 
+    conn = sqlite3.connect("problems.db")
+    cursor = conn.cursor()
+
     cursor.execute("SELECT 정답여부 FROM attempts")
     results = cursor.fetchall()
     if results:
@@ -973,3 +976,5 @@ with tab_dashboard:
         st.bar_chart(df.set_index('문제형식'))
     else:
         st.write("문제풀이 기록이 없습니다.")
+
+    conn.close()
