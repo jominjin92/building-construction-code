@@ -754,6 +754,7 @@ with tab_problem:
                         for prob in problems:
                             prob['id'] = str(uuid.uuid4())
                             prob['문제출처'] = '건축기사 기출문제'
+                            prob['문제형식'] = '객관식'  # ✅ 이거 추가!!!
                             prob['선택지'] = [prob.get('선택지1', ''), prob.get('선택지2', ''), prob.get('선택지3', ''), prob.get('선택지4', '')]
                             prob['정답'] = str(prob.get('정답', ''))
                             prob['해설'] = prob.get('해설', '')
