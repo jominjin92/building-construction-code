@@ -862,12 +862,16 @@ with tab_admin:
             df = pd.read_csv(uploaded_file)
             for _, row in df.iterrows():
                 problem_data = {
-                    "문제": row['문제'],
-                    "선택지": [row.get(f'선택지{i}', None) for i in range(1, 5)],
-                    "정답": row['정답'],
-                    "해설": row['해설'],
-                    "문제형식": row['문제형식'],
-                    "문제출처": "건축기사 기출문제",
+                    "question": row['문제'],
+                    "choice1": row.get('선택지1', None),
+                    "choice2": row.get('선택지2', None),
+                    "choice3": row.get('선택지3', None),
+                    "choice4": row.get('선택지4', None),
+                    "answer": row['정답'],
+                    "explanation": row['해설'],
+                    "difficulty": 1,
+                    "chapter": "챕터없음",
+                    "type": row['문제형식'],
                     "id": None
                 }
                 save_problem_to_db(problem_data)
