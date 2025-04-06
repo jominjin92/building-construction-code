@@ -493,13 +493,14 @@ json) 없이 순수 JSON만 출력해 주세요.
         logging.info(f"[finish_reason] {finish_reason}")
 
         raw_output = response.choices[0].message.content.strip()
-        if raw_output.startswith("
-"):
-            raw_output = raw_output.strip("").strip()
+
+        if raw_output.startswith("```"):
+            raw_output = raw_output.strip("`").strip()
             if raw_output.lower().startswith("json"):
                 raw_output = raw_output[4:].strip()
+
         logging.info(f"[해설 clean output] {raw_output}")
-        
+
         explanation_dict = json.loads(raw_output)
         return explanation_dict
 
