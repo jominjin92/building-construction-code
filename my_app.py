@@ -692,13 +692,13 @@ def display_problems():
         st.markdown(f"### 총 정답 수: {correct_count} / {total}")
 
 # ✅ 전체 문제 조회 (관리자용)
-def get_all_problems_dict():
+def get_all_problems_dict(db_path="problems.db"):
     conn = sqlite3.connect(db_path)
-    cursor = conn.cursor("problems.db")
+    cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM problems")
     rows = cursor.fetchall()
-    conn.close()  # ✅ 사용 후 연결 종료!
+    conn.close()
 
     problem_list = []
     for row in rows:
