@@ -655,10 +655,6 @@ def export_problems_to_csv(db_path="problems.db", export_path="problems_export.c
     df.to_csv(export_path, index=False, encoding='utf-8-sig')
     conn.close()
 
-# 문제 생성 후 호출
-save_problem_to_db(problem_data)
-export_problems_to_csv()
-
 # 문제 풀이 UI 출력 함수
 def display_problems():
     correct_count = 0
