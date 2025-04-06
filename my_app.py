@@ -13,6 +13,8 @@ import uuid
 
 logging.basicConfig(level=logging.INFO, force=True)
 
+st.set_page_config(layout="wide")
+
 # ---------------------
 # 1) API 키 설정
 # ---------------------
@@ -23,7 +25,6 @@ else:
     st.stop()
 
 # Streamlit 기본 설정
-st.set_page_config(layout="wide")
 st.title("건축시공학 문제 생성 및 풀이")
 
 # DB 연결 및 테이블 생성
@@ -690,7 +691,6 @@ if "user_role" not in st.session_state:
 login()
 
 # 탭 구성
-st.set_page_config(layout="wide")
 st.title("건축시공학 하이브리드 문제풀이 시스템 🎉")
 
 tab_problem, tab_admin, tab_dashboard = st.tabs(["문제풀이", "문제 관리", "통계 및 대시보드"])
