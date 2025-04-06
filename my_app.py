@@ -954,7 +954,7 @@ with tab_dashboard:
     conn = sqlite3.connect("problems.db")
     cursor = conn.cursor()
 
-    cursor.execute("SELECT 정답여부 FROM attempts")
+    cursor.execute("SELECT is_correct FROM attempts")
     results = cursor.fetchall()
     if results:
         df = pd.DataFrame(results, columns=['정답여부'])
@@ -964,11 +964,11 @@ with tab_dashboard:
     else:
         st.write("풀이 기록이 없습니다.")
 
-    st.subheader("문제 유형별 시도 기록")
+    # ✅ 두 번째 쿼리: 문제 유형별 시도 기록
     cursor.execute("""
-        SELECT 문제형식, COUNT(*) FROM problems 
-        JOIN attempts ON problems.id = attempts.문제ID
-        GROUP BY 문제형식
+        SELECT type, COUNT(*) FROM problems 
+        JOIN attempts ON problems.id = attempts.problem_id
+        GROUP BY type
     """)
     data = cursor.fetchall()
     if data:
@@ -977,4 +977,5 @@ with tab_dashboard:
     else:
         st.write("문제풀이 기록이 없습니다.")
 
+    # ✅ 모든 작업 끝난 후에 DB 연결 종료!
     conn.close()
