@@ -598,7 +598,7 @@ def delete_problem_from_db(problem_id):
     conn.commit()
 
 # OpenAI 문제 생성 함수
-def generate_openai_problem(question_type):
+def generate_openai_problem(question_type, problem_source):
     prompt = f"""
     당신은 건축시공학 교수입니다. 건축시공학과 관련된 {question_type} 문제를 하나 출제하세요.
     아래 형식의 JSON 으로 출력하세요. JSON 외의 텍스트는 출력하지 마세요.
@@ -623,7 +623,6 @@ def generate_openai_problem(question_type):
     result = response['choices'][0]['message']['content']
 
     try:
-        # JSON 파싱
         result_json = json.loads(result)
 
         problem_data = {
