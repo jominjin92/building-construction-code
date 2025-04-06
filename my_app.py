@@ -750,6 +750,7 @@ with tab_problem:
                 try:
                     df = pd.read_csv("456.csv")
                     if not df.empty:
+                        sampled_df = df.sample(n=num_objective, random_state=42)
                         problems = df.to_dict(orient='records')
                         for prob in problems:
                             prob['id'] = str(uuid.uuid4())
