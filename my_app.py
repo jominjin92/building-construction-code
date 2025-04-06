@@ -607,15 +607,18 @@ def delete_problem_from_db(problem_id):
 # OpenAI 문제 생성 함수
 def generate_openai_problem(question_type):
     prompt = f"""
-    당신은 건축시공학 교수입니다. 건축시공학과 관련된 {question_type} 문제를 하나 출제하고, 선택지와 정답, 해설을 제공하세요.
+    당신은 건축시공학 교수입니다. 건축시공학과 관련된 {question_type} 문제를 하나 출제하세요.
+    아래 형식의 JSON 으로 출력하세요. JSON 외의 텍스트는 출력하지 마세요.
 
-    - 문제:
-    - 선택지1:
-    - 선택지2:
-    - 선택지3:
-    - 선택지4:
-    - 정답 번호 (1~4 중 하나):
-    - 해설:
+    {{
+      "문제": "...",
+      "선택지1": "...",
+      "선택지2": "...",
+      "선택지3": "...",
+      "선택지4": "...",
+      "정답": "1", 
+      "해설": "..."
+    }}
     """
 
     response = openai.ChatCompletion.create(
@@ -625,25 +628,33 @@ def generate_openai_problem(question_type):
     )
 
     result = response['choices'][0]['message']['content']
-    lines = result.strip().split("\n")
 
-    problem_data = {
-        "문제": lines[0].replace("문제:", "").strip(),
-        "선택지": [
-            lines[1].split(":")[1].strip(),
-            lines[2].split(":")[1].strip(),
-            lines[3].split(":")[1].strip(),
-            lines[4].split(":")[1].strip()
-        ],
-        "정답": lines[5].split(":")[1].strip(),
-        "문제출처": "건축시공 기출문제",
-        "문제형식": question_type,
-        "해설": lines[6].replace("해설:", "").strip(),
-        "id": None
-    }
+    try:
+        # JSON 파싱
+        result_json = json.loads(result)
 
-    save_problem_to_db(problem_data)
-    return problem_data
+        problem_data = {
+            "문제": result_json.get("문제", ""),
+            "선택지": [
+                result_json.get("선택지1", ""),
+                result_json.get("선택지2", ""),
+                result_json.get("선택지3", ""),
+                result_json.get("선택지4", "")
+            ],
+            "정답": result_json.get("정답", ""),
+            "문제출처": "건축시공 기출문제",
+            "문제형식": question_type,
+            "해설": result_json.get("해설", ""),
+            "id": None
+        }
+
+        save_problem_to_db(problem_data)
+        return problem_data
+
+    except json.JSONDecodeError as e:
+        logging.error(f"GPT 응답 JSON 파싱 오류: {e}")
+        st.error("GPT 응답을 JSON으로 파싱하는 중 오류가 발생했습니다. 프롬프트를 다시 확인하세요.")
+        return None
 
 # 문제 풀이 UI 출력 함수
 def display_problems():
