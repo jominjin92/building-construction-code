@@ -542,6 +542,8 @@ def init_state():
         st.session_state.show_problems = False
     if 'user_answers' not in st.session_state:
         st.session_state.user_answers = []
+    if 'show_results' not in st.session_state:
+        st.session_state.show_results = {}
 
 init_state()
 
@@ -908,6 +910,9 @@ with tab_admin:
         for prob in problems:
             with st.expander(f"문제 ID {prob['id']}: {prob['문제'][:30]}..."):
 
+                problem_text = prob.get("문제", "")
+                problem_key = prob.get("id", problem_text[:10])
+
                 edited_problem = st.text_area("문제 내용", prob['문제'], key=f"edit_answer_{problem_key}_{uuid.uuid4()}")
 
 
@@ -917,8 +922,6 @@ with tab_admin:
                         st.text_input(f"선택지 {i+1}", prob['선택지'][i] if i < len(prob['선택지']) else "", key=f"edit_choice_{i}_{prob['id']}")
                         for i in range(4)
                     ]
-                    problem_text = prob.get("문제", "")
-                    problem_key = prob.get("id", problem_text[:10])
 
                     edited_answer = st.selectbox(
                         "정답 선택 (숫자)",
