@@ -748,13 +748,17 @@ with tab_problem:
             if selected_source == "건축기사 기출문제":
                 # CSV 파일이 존재하는지 확인 후 문제 불러오기
                 try:
-                    df = pd.read_csv("456.csv")  # 사용 중인 CSV 파일명으로 변경
+                    df = pd.read_csv("456.csv")
                     if not df.empty:
-                        for _ in range(num_objective):
-                            prob_list = load_problems_from_db("객관식", 1)
-                            if prob_list:
-                                for prob in prob_list:
-                                    st.session_state.problem_list.append(prob)
+                        problems = df.to_dict(orient='records')
+                        for prob in problems:
+                            prob['id'] = str(uuid.uuid4())
+                            prob['문제출처'] = '건축기사 기출문제'
+                            prob['선택지'] = [prob.get('선택지1', ''), prob.get('선택지2', ''), prob.get('선택지3', ''), prob.get('선택지4', '')]
+                            prob['정답'] = str(prob.get('정답', ''))
+                            prob['해설'] = prob.get('해설', '')
+                            st.session_state.problem_list.append(prob)  # ✅ 이 부분이 핵심!!
+
                         st.success(f"CSV에서 문제 {len(st.session_state.problem_list)}개 불러오기 완료!")
                     else:
                         st.warning("CSV 파일에 문제가 없습니다. 파일을 확인해주세요!")
