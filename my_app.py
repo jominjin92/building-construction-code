@@ -790,22 +790,22 @@ with tab_problem:
                     st.error(f"문제 불러오기 중 오류 발생: {e}")
 
             elif selected_source == "건축시공 기출문제":
-                # OpenAI 기반 문제 불러오기 (이미 정상 작동 중)
                 for _ in range(num_objective):
                     prob = load_problems_from_db("객관식", 1)
                     if prob:
                         st.session_state.problem_list.extend(prob)
+
                 for _ in range(num_subjective):
                     prob = load_problems_from_db("주관식", 1)
                     if prob:
                         st.session_state.problem_list.extend(prob)
 
-            # 2. 채점 결과 출력 부분 안정성 강화 (ZeroDivisionError 방지)
-                correct_count = sum(1 for prob in st.session_state.problem_list if prob.get("is_correct", False))
+    # ✅ 총 문제 수 검증 추가
                 total = len(st.session_state.problem_list)
                 if total == 0:
                     st.warning("문제가 없습니다. 문제를 먼저 생성하거나 선택해주세요.")
                 else:
+                    correct_count = sum(1 for prob in st.session_state.problem_list if prob.get("is_correct", False))
                     st.markdown(f"최종 정답률: **{correct_count} / {total}** ({(correct_count/total)*100:.2f}%)")
 
     with col2:
