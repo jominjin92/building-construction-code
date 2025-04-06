@@ -751,7 +751,6 @@ with tab_problem:
                             prob_list = load_problems_from_db("객관식", 1)
                             if prob_list:
                                 for prob in prob_list:
-                                    prob["문제출처"] = "건축시공 기출문제"
                                     st.session_state.problem_list.append(prob)
                         st.success(f"CSV에서 문제 {len(st.session_state.problem_list)}개 불러오기 완료!")
                     else:
