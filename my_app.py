@@ -649,6 +649,13 @@ def generate_openai_problem(question_type):
         st.error("GPT 응답을 JSON으로 파싱하는 중 오류가 발생했습니다. 프롬프트를 다시 확인하세요.")
         return None
 
+def get_table_download_link(file_path):
+    with open(file_path, 'rb') as f:
+        data = f.read()
+    b64 = base64.b64encode(data).decode()
+    href = f'<a href="data:file/csv;base64,{b64}" download="problems_export.csv">📥 문제 CSV 다운로드</a>'
+    return href
+
 def export_problems_to_csv(db_path="problems.db", export_path="problems_export.csv"):
     conn = sqlite3.connect(db_path)
     df = pd.read_sql_query("SELECT * FROM problems", conn)
