@@ -47,48 +47,6 @@ else:
 # Streamlit 기본 설정
 st.title("건축시공학 문제 생성 및 풀이")
 
-# DB 연결 및 테이블 생성
-conn = sqlite3.connect('problems.db')
-cursor = conn.cursor()
-
-# 문제 테이블
-cursor.execute('''
-    CREATE TABLE IF NOT EXISTS problems (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        문제 TEXT,
-        선택지1 TEXT,
-        선택지2 TEXT,
-        선택지3 TEXT,
-        선택지4 TEXT,
-        정답 TEXT,
-        해설 TEXT,
-        문제형식 TEXT,
-        문제출처 TEXT
-    )
-''')
-
-# 시도 기록 테이블
-cursor.execute('''
-    CREATE TABLE IF NOT EXISTS attempts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        문제ID INTEGER,
-        사용자가입력한정답 TEXT,
-        실제정답 TEXT,
-        정답여부 TEXT
-    )
-''')
-
-# 피드백 테이블
-cursor.execute('''
-    CREATE TABLE IF NOT EXISTS feedback (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        문제ID INTEGER,
-        피드백 TEXT
-    )
-''')
-
-conn.commit()
-
 # ---------------------
 # 로그인 기능 추가
 # ---------------------
@@ -530,7 +488,7 @@ json) 없이 순수 JSON만 출력해 주세요.
 
 # 문제 DB 저장 함수
 def save_problem_to_db(problem_data):
-    conn = sqlite3.connect('problems.db')  # ✅ 수정: 문제 DB로 통일
+    conn = sqlite3.connect('problems.db')
     cursor = conn.cursor()
 
     choices = problem_data.get("선택지", ["", "", "", ""])
@@ -540,8 +498,8 @@ def save_problem_to_db(problem_data):
     problem_data['id'] = str(uuid.uuid4())
 
     cursor.execute('''
-        INSERT INTO problems (문제, 선택지1, 선택지2, 선택지3, 선택지4, 정답, 해설, 문제형식, 문제출처)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO problems (question, choice1, choice2, choice3, choice4, answer, explanation, difficulty, chapter, type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         problem_data.get("문제", ""),
         choices[0],
@@ -550,10 +508,12 @@ def save_problem_to_db(problem_data):
         choices[3],
         problem_data.get("정답", ""),
         problem_data.get("해설", ""),
-        problem_data.get("문제형식", ""),
-        problem_data.get("문제출처", "")
+        3,  # difficulty 기본값 (원하면 더 정교하게 처리 가능)
+        "1",  # chapter 기본값
+        problem_data.get("문제출처", "건축기사 기출문제")
     ))
     conn.commit()
+    conn.close()
 
 # ✅ 문제 불러오기 (DB 기반)
 def load_csv_problems():
