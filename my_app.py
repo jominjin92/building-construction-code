@@ -103,6 +103,7 @@ if not st.session_state["logged_in"]:
 # 3) DB 초기화
 # ---------------------
 def init_db(db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor(db_path)
     c = conn.cursor()
     c.execute("""
@@ -126,6 +127,7 @@ def init_db(db_path="problems.db"):
 init_db("problems.db")
 
 def update_db_types(db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor(db_path)
     c = conn.cursor()
     # 공백 및 개행 제거
@@ -138,6 +140,7 @@ def update_db_types(db_path="problems.db"):
 
 # 1. DB에 피드백 테이블 추가
 def create_feedback_table(db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor(db_path)
     c = conn.cursor()
     c.execute("""
@@ -155,6 +158,7 @@ def create_feedback_table(db_path="problems.db"):
 create_feedback_table("problems.db")
 
 def record_feedback(user_id, problem_id, feedback_text, db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor(db_path)
     c = conn.cursor()
     c.execute("INSERT INTO feedback (user_id, problem_id, feedback_text) VALUES (?, ?, ?)",
@@ -163,12 +167,14 @@ def record_feedback(user_id, problem_id, feedback_text, db_path="problems.db"):
     conn.close()
 
 def get_all_feedback(db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor(db_path)
     df = pd.read_sql_query("SELECT * FROM feedback ORDER BY feedback_time DESC", conn)
     conn.close()
     return df
 
 def get_feedback_with_problem(db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor(db_path)
     query = """
     SELECT 
@@ -191,6 +197,7 @@ init_db("problems.db")
 update_db_types()
 
 def create_attempts_table(db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor(db_path)
     c = conn.cursor()
     c.execute("""
@@ -209,6 +216,7 @@ def create_attempts_table(db_path="problems.db"):
 create_attempts_table("problems.db")
 
 def record_attempt(user_id, problem_id, user_answer, is_correct, db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor(db_path)
     c = conn.cursor()
     c.execute("INSERT INTO attempts (user_id, problem_id, user_answer, is_correct) VALUES (?, ?, ?, ?)",
@@ -220,6 +228,7 @@ def record_attempt(user_id, problem_id, user_answer, is_correct, db_path="proble
 # 통계 및 대시보드 새로운 집계 추가
 # ---------------------
 def get_chapter_accuracy():
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor("problems.db")
     query = """
     SELECT 
@@ -236,6 +245,7 @@ def get_chapter_accuracy():
     return df
 
 def get_user_stats():
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor("problems.db")
     query = """
     SELECT 
@@ -251,6 +261,7 @@ def get_user_stats():
     return df
 
 def get_difficulty_stats():
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor("problems.db")
     query = """
     SELECT 
@@ -267,12 +278,14 @@ def get_difficulty_stats():
     return df
 
 def get_all_attempts():
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor("problems.db")
     df = pd.read_sql_query("SELECT * FROM attempts ORDER BY attempt_time DESC", conn)
     conn.close()
     return df
 
 def get_detailed_attempts():
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor("problems.db")
     query = """
     SELECT 
@@ -293,6 +306,7 @@ def get_detailed_attempts():
     return df
 
 def get_detailed_attempts_for_user(user_id):
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor("problems.db")
     query = """
     SELECT 
@@ -488,8 +502,8 @@ json) 없이 순수 JSON만 출력해 주세요.
 
 # 문제 DB 저장 함수
 def save_problem_to_db(problem_data):
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor('problems.db')
-    cursor = conn.cursor()
 
     choices = problem_data.get("선택지", ["", "", "", ""])
     while len(choices) < 4:
@@ -529,6 +543,7 @@ def load_csv_problems():
         return []
 
 def load_problems_from_db(question_type, limit=1, db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor(db_path)
     c = conn.cursor()
 
@@ -678,8 +693,8 @@ def display_problems():
 
 # ✅ 전체 문제 조회 (관리자용)
 def get_all_problems_dict():
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor("problems.db")
-    cursor = conn.cursor()  # ✅ 추가!!
 
     cursor.execute("SELECT * FROM problems")
     rows = cursor.fetchall()
