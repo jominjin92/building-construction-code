@@ -21,9 +21,15 @@ def init_state():
     if 'show_problems' not in st.session_state:
         st.session_state.show_problems = False
     if 'user_answers' not in st.session_state:
-        st.session_state.user_answers = []
+        st.session_state.user_answers = {}
     if 'show_results' not in st.session_state:
         st.session_state.show_results = {}
+    if 'logged_in' not in st.session_state:
+        st.session_state.logged_in = False
+    if 'user_role' not in st.session_state:
+        st.session_state.user_role = "user"
+    if 'username' not in st.session_state:
+        st.session_state.username = "guest"
 
 init_state()
 
@@ -856,19 +862,20 @@ with tab_problem:
                         st.info(prob.get("해설", "해설이 등록되지 않았습니다."))
                     feedback = st.text_area(f"문제 {idx + 1} 피드백 작성", key=f"feedback_{idx}")
                     if st.button(f"문제 {idx + 1} 피드백 저장", key=f"save_feedback_{idx}"):
-                        cursor.execute('''
-                            INSERT INTO feedback (문제ID, 피드백) VALUES (?, ?)
-                        ''', (prob['id'], feedback))
-                        conn.commit()
-                        st.success("피드백이 저장되었습니다.")
+                        if feedback.strip():
+                            cursor.execute('''
+                                INSERT INTO feedback (문제ID, 피드백) VALUES (?, ?)
+                            ''', (prob['id'], feedback))
+                            conn.commit()
+                            st.success("피드백이 저장되었습니다.")
 
-            st.markdown(f"### 🎯 최종 정답률: **{correct_count} / {total}** ({(correct_count/total)*100:.2f}%)")
+                st.markdown(f"### 🎯 최종 정답률: **{correct_count} / {total}** ({(correct_count/total)*100:.2f}%)")
 
-            if st.button("다시 풀기"):
-                for key in list(st.session_state.keys()):
-                    if key.startswith("answer_") or key in ["problem_list", "user_answers", "show_problems", "show_results"]:
-                        del st.session_state[key]
-                st.rerun()
+                if st.button("다시 풀기"):
+                    for key in list(st.session_state.keys()):
+                        if key.startswith("answer_") or key in ["problem_list", "user_answers", "show_problems", "show_results"]:
+                            del st.session_state[key]
+                    st.rerun()
 
 # ============================== 관리자 모드 ==============================
 
