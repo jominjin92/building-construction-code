@@ -507,6 +507,9 @@ def generate_explanation(question_text, answer_text):
 
 # 문제 DB 저장 함수
 def save_problem_to_db(problem_data):
+    conn = sqlite3.connect('problems.db')  # ✅ 수정: 문제 DB로 통일
+    cursor = conn.cursor()
+
     problem_data['id'] = str(uuid.uuid4())
 
     cursor.execute('''
