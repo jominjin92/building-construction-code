@@ -88,7 +88,7 @@ init_db()
 # ---------------------
 # 로그인 기능
 # ---------------------
-def login(username, password):
+def check_credentials(username, password):
     credentials = {
         "admin": "1234",
         "user1": "pass1",
@@ -98,20 +98,19 @@ def login(username, password):
     }
     return credentials.get(username) == password
 
-if not st.session_state["logged_in"]:
+def login():
     st.subheader("로그인")
     username = st.text_input("사용자 이름")
     password = st.text_input("비밀번호", type="password")
     if st.button("로그인"):
-        if login(username, password):
+        if check_credentials(username, password):
             st.session_state["logged_in"] = True
             st.session_state["username"] = username
             st.session_state["user_role"] = "admin" if username == "admin" else "user"
             st.success("로그인 성공!")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
-    st.stop()
 
 # ---------------------
 # OpenAI 문제 생성 + CSV 저장
