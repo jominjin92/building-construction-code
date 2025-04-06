@@ -751,7 +751,7 @@ with tab_problem:
                     df = pd.read_csv("456.csv")
                     if not df.empty:
                         sampled_df = df.sample(n=num_objective, random_state=42)
-                        problems = df.to_dict(orient='records')
+                        problems = sampled_df.to_dict(orient='records')
                         for prob in problems:
                             prob['id'] = str(uuid.uuid4())
                             prob['문제출처'] = '건축기사 기출문제'
