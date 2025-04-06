@@ -676,7 +676,7 @@ def display_problems():
 
         user_answer = st.radio(
             f"답안 선택 (문제 {idx + 1})",
-            [prob['선택1'], prob['선택2'], prob['선택3'], prob['선택4']],
+            prob.get('선택지', ['']) if prob.get('문제형식') == '객관식' else [],
             key=unique_key
         )
 
@@ -699,6 +699,9 @@ def display_problems():
 
     # 전체 결과 출력
     if total > 0:
+        st.markdown(f"최종 정답률: **{correct_count} / {total}** ({(correct_count/total)*100:.2f}%)")
+    else:
+        st.markdown("문제가 없습니다. 먼저 문제를 생성하거나 선택해주세요.")
         correct_count = sum(
             1 for prob in st.session_state.problem_list
             if st.session_state.user_answers.get(prob['id']) == prob['정답']
@@ -764,6 +767,7 @@ with tab_problem:
             st.session_state.problem_list = []
             st.session_state.show_problems = True
             st.session_state.user_answers = {}
+            st.session_state.show_results = {}
 
             if selected_source == "건축기사 기출문제":
                 # CSV 파일이 존재하는지 확인 후 문제 불러오기
