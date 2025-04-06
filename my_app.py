@@ -558,7 +558,7 @@ def load_problems_from_db(question_type, limit=1, db_path="problems.db"):
     c.execute("""
         SELECT id, question, choice1, choice2, choice3, choice4, answer, explanation, difficulty, chapter, type 
         FROM problems 
-        WHERE 문제형식 = ?
+        WHERE type = ?
         ORDER BY RANDOM() 
         LIMIT ?
     """, (question_type, limit))
