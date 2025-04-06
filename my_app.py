@@ -548,6 +548,36 @@ def load_csv_problems():
         st.warning("CSV 파일이 존재하지 않습니다. 관리자 모드에서 업로드해주세요!")
         return []
 
+def load_problems_from_db(question_type, limit=1, db_path="problems.db"):
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT id, question, choice1, choice2, choice3, choice4, answer, explanation, difficulty, chapter, type 
+        FROM problems 
+        WHERE type = ?
+        ORDER BY RANDOM() 
+        LIMIT ?
+    """, (question_type, limit))
+
+    rows = c.fetchall()
+    conn.close()
+
+    problems = []
+    for row in rows:
+        problems.append({
+            "id": row[0],
+            "문제": row[1],
+            "선택지": [row[2], row[3], row[4], row[5]],
+            "정답": row[6],
+            "해설": row[7],
+            "난이도": row[8],
+            "챕터": row[9],
+            "문제형식": "객관식" if row[10] == "건축기사 기출문제" else "주관식",
+            "문제출처": row[10]
+        })
+    return problems
+
 # ✅ 문제 수정 함수 (관리자용)
 def update_problem_in_db(problem_id, updated_data):
     cursor.execute('''
