@@ -104,7 +104,7 @@ if not st.session_state["logged_in"]:
 # ---------------------
 def init_db(db_path="problems.db"):
     conn = sqlite3.connect(db_path)
-    cursor = conn.cursor(db_path)
+    cursor = conn.cursor()
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS problems (
@@ -128,7 +128,7 @@ init_db("problems.db")
 
 def update_db_types(db_path="problems.db"):
     conn = sqlite3.connect(db_path)
-    cursor = conn.cursor(db_path)
+    cursor = conn.cursor()
     c = conn.cursor()
     # 공백 및 개행 제거
     c.execute("UPDATE problems SET type = TRIM(type)")
@@ -141,7 +141,7 @@ def update_db_types(db_path="problems.db"):
 # 1. DB에 피드백 테이블 추가
 def create_feedback_table(db_path="problems.db"):
     conn = sqlite3.connect(db_path)
-    cursor = conn.cursor(db_path)
+    cursor = conn.cursor()
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS feedback (
@@ -159,7 +159,7 @@ create_feedback_table("problems.db")
 
 def record_feedback(user_id, problem_id, feedback_text, db_path="problems.db"):
     conn = sqlite3.connect(db_path)
-    cursor = conn.cursor(db_path)
+    cursor = conn.cursor()
     c = conn.cursor()
     c.execute("INSERT INTO feedback (user_id, problem_id, feedback_text) VALUES (?, ?, ?)",
               (user_id, problem_id, feedback_text))
@@ -168,14 +168,14 @@ def record_feedback(user_id, problem_id, feedback_text, db_path="problems.db"):
 
 def get_all_feedback(db_path="problems.db"):
     conn = sqlite3.connect(db_path)
-    cursor = conn.cursor(db_path)
+    cursor = conn.cursor()
     df = pd.read_sql_query("SELECT * FROM feedback ORDER BY feedback_time DESC", conn)
     conn.close()
     return df
 
 def get_feedback_with_problem(db_path="problems.db"):
     conn = sqlite3.connect(db_path)
-    cursor = conn.cursor(db_path)
+    cursor = conn.cursor()
     query = """
     SELECT 
         f.id,
@@ -198,7 +198,7 @@ update_db_types()
 
 def create_attempts_table(db_path="problems.db"):
     conn = sqlite3.connect(db_path)
-    cursor = conn.cursor(db_path)
+    cursor = conn.cursor()
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS attempts (
@@ -217,7 +217,7 @@ create_attempts_table("problems.db")
 
 def record_attempt(user_id, problem_id, user_answer, is_correct, db_path="problems.db"):
     conn = sqlite3.connect(db_path)
-    cursor = conn.cursor(db_path)
+    cursor = conn.cursor()
     c = conn.cursor()
     c.execute("INSERT INTO attempts (user_id, problem_id, user_answer, is_correct) VALUES (?, ?, ?, ?)",
               (user_id, problem_id, user_answer, is_correct))
@@ -544,7 +544,7 @@ def load_csv_problems():
 
 def load_problems_from_db(question_type, limit=1, db_path="problems.db"):
     conn = sqlite3.connect(db_path)
-    cursor = conn.cursor(db_path)
+    cursor = conn.cursor()
     c = conn.cursor()
 
     c.execute("""
