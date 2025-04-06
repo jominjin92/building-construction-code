@@ -15,6 +15,18 @@ logging.basicConfig(level=logging.INFO, force=True)
 
 st.set_page_config(layout="wide")
 
+def init_state():
+    if 'problem_list' not in st.session_state:
+        st.session_state.problem_list = []
+    if 'show_problems' not in st.session_state:
+        st.session_state.show_problems = False
+    if 'user_answers' not in st.session_state:
+        st.session_state.user_answers = []
+    if 'show_results' not in st.session_state:
+        st.session_state.show_results = {}
+
+init_state()
+
 # ---------------------
 # 1) API 키 설정
 # ---------------------
@@ -24,11 +36,13 @@ else:
     st.error("API key 설정 오류: secrets.toml에 OPENAI_API_KEY가 없습니다.")
     st.stop()
 
+
+
 # Streamlit 기본 설정
 st.title("건축시공학 문제 생성 및 풀이")
 
 # DB 연결 및 테이블 생성
-conn = sqlite3.connect('problem.db')
+conn = sqlite3.connect('problems.db')
 cursor = conn.cursor()
 
 # 문제 테이블
@@ -534,18 +548,6 @@ def save_problem_to_db(problem_data):
         problem_data.get("문제출처", "")
     ))
     conn.commit()
-
-def init_state():
-    if 'problem_list' not in st.session_state:
-        st.session_state.problem_list = []
-    if 'show_problems' not in st.session_state:
-        st.session_state.show_problems = False
-    if 'user_answers' not in st.session_state:
-        st.session_state.user_answers = []
-    if 'show_results' not in st.session_state:
-        st.session_state.show_results = {}
-
-init_state()
 
 # ✅ 문제 불러오기 (DB 기반)
 def load_csv_problems():
