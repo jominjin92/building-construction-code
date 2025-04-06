@@ -28,7 +28,7 @@ else:
 st.title("건축시공학 문제 생성 및 풀이")
 
 # DB 연결 및 테이블 생성
-conn = sqlite3.connect('problem_bank.db')
+conn = sqlite3.connect('problem.db')
 cursor = conn.cursor()
 
 # 문제 테이블
