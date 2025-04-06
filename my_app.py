@@ -649,10 +649,10 @@ def generate_openai_problem(question_type):
         st.error("GPT 응답을 JSON으로 파싱하는 중 오류가 발생했습니다. 프롬프트를 다시 확인하세요.")
         return None
 
-def export_problems_to_csv():
-    conn = sqlite3.connect("problems.db")
+def export_problems_to_csv(db_path="problems.db", export_path="problems_export.csv"):
+    conn = sqlite3.connect(db_path)
     df = pd.read_sql_query("SELECT * FROM problems", conn)
-    df.to_csv("problems_export.csv", index=False, encoding="utf-8-sig")
+    df.to_csv(export_path, index=False, encoding='utf-8-sig')
     conn.close()
 
 # 문제 생성 후 호출
@@ -886,6 +886,7 @@ with tab_admin:
             generate_openai_problem("주관식")
             st.success("GPT 기반 주관식 문제 생성 완료!")
 
+        # CSV 문제 업로드
         st.subheader("CSV 문제 업로드")
         uploaded_file = st.file_uploader("CSV 파일 업로드 (관리자 전용)", type=["csv"])
         if uploaded_file is not None:
@@ -913,33 +914,8 @@ with tab_admin:
         problems = get_all_problems_dict()
         for prob in problems:
             with st.expander(f"문제 ID {prob['id']}: {prob['문제'][:30]}..."):
+                # ... (문제 편집 코드 그대로 유지)
 
-                problem_text = prob.get("문제", "")
-                problem_key = prob.get("id", problem_text[:10])
-
-                edited_problem = st.text_area("문제 내용", prob['문제'], key=f"edit_answer_{problem_key}_{uuid.uuid4()}")
-
-
-        # 문제 형식에 따라 선택지 입력 다르게 처리
-                if prob['문제형식'] == "객관식":
-                    edited_choices = [
-                        st.text_input(f"선택지 {i+1}", prob['선택지'][i] if i < len(prob['선택지']) else "", key=f"edit_choice_{i}_{prob['id']}")
-                        for i in range(4)
-                    ]
-
-                    edited_answer = st.selectbox(
-                        "정답 선택 (숫자)",
-                        ["1", "2", "3", "4"],
-                        index=int(prob['정답']) - 1 if prob['정답'].isdigit() and int(prob['정답']) in range(1, 5) else 0,
-                        key=f"edit_answer_{problem_key}"
-                    )
-                else:
-                    edited_choices = ["", "", "", ""]  # 주관식은 선택지 없음
-                    edited_answer = st.text_input("정답 입력", prob['정답'], key=f"edit_answer_{prob['id']}")
-
-                edited_explanation = st.text_area("해설", prob['해설'], key=f"edit_explanation_{prob['id']}")
-
-        # 문제 저장 버튼
                 if st.button("문제 수정 저장", key=f"save_edit_{prob['id']}"):
                     updated_data = {
                         "문제": edited_problem,
@@ -952,27 +928,16 @@ with tab_admin:
                     update_problem_in_db(prob['id'], updated_data)
                     st.success("문제가 수정되었습니다!")
 
-        # 문제 삭제 버튼
                 if st.button("문제 삭제", key=f"delete_{prob['id']}"):
                     delete_problem_from_db(prob['id'])
                     st.warning("문제가 삭제되었습니다!")
 
-        # 문제 저장 버튼
+        # ✅ 문제 CSV 내보내기 다운로드 (여기!)
+        st.subheader("문제 CSV 다운로드")
         if st.button("문제 CSV로 내보내기"):
             export_problems_to_csv()
             st.success("문제를 CSV 파일로 저장했습니다.")
-
-def get_table_download_link(file_path):
-    with open(file_path, 'rb') as f:
-        data = f.read()
-    b64 = base64.b64encode(data).decode()
-    href = f'<a href="data:file/csv;base64,{b64}" download="problems_export.csv">📥 문제 CSV 다운로드</a>'
-    return href
-
-if st.button("문제 CSV로 내보내기"):
-    export_problems_to_csv()
-    st.success("문제를 CSV 파일로 저장했습니다.")
-    st.markdown(get_table_download_link("problems_export.csv"), unsafe_allow_html=True)
+            st.markdown(get_table_download_link("problems_export.csv"), unsafe_allow_html=True)
 
 # ============================== 통계 및 대시보드 ==============================
 
