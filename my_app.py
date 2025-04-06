@@ -914,26 +914,58 @@ with tab_admin:
 
         # 문제 목록 조회 및 편집
         st.subheader("문제 목록")
+
+        # ✅ 문제 출처 선택
+        problem_sources = ["건축기사 기출문제", "건축시공 기출문제"]
+        selected_source = st.selectbox("문제 출처 선택", problem_sources)
+
+        # 전체 문제 불러오기
         problems = get_all_problems_dict()
-        for prob in problems:
-            with st.expander(f"문제 ID {prob['id']}: {prob['문제'][:30]}..."):
-                # ... (문제 편집 코드 그대로 유지)
 
-                if st.button("문제 수정 저장", key=f"save_edit_{prob['id']}"):
-                    updated_data = {
-                        "문제": edited_problem,
-                        "선택지": edited_choices,
-                        "정답": edited_answer,
-                        "해설": edited_explanation,
-                        "문제형식": prob['문제형식'],
-                        "문제출처": prob['문제출처']
-                    }
-                    update_problem_in_db(prob['id'], updated_data)
-                    st.success("문제가 수정되었습니다!")
+        # ✅ 선택한 출처에 맞는 문제만 필터링
+        filtered_problems = [prob for prob in problems if prob['문제출처'] == selected_source]
 
-                if st.button("문제 삭제", key=f"delete_{prob['id']}"):
-                    delete_problem_from_db(prob['id'])
-                    st.warning("문제가 삭제되었습니다!")
+        if not filtered_problems:
+            st.write("선택한 출처에 해당하는 문제가 없습니다.")
+        else:
+            for prob in filtered_problems:
+                with st.expander(f"문제 ID {prob['id']}: {prob['문제'][:30]}..."):
+                    problem_text = st.text_area("문제 내용", prob['문제'], key=f"edit_problem_{prob['id']}")
+
+                    if prob['문제형식'] == "객관식":
+                        edited_choices = [
+                            st.text_input(f"선택지 {i+1}", prob['선택지'][i] if i < len(prob['선택지']) else "", key=f"edit_choice_{i}_{prob['id']}")
+                            for i in range(4)
+                        ]
+                        edited_answer = st.selectbox(
+                            "정답 선택 (숫자)",
+                            ["1", "2", "3", "4"],
+                            index=int(prob['정답']) - 1 if prob['정답'].isdigit() and int(prob['정답']) in range(1, 5) else 0,
+                            key=f"edit_answer_{prob['id']}"
+                        )
+                    else:
+                        edited_choices = ["", "", "", ""]
+                        edited_answer = st.text_input("정답 입력", prob['정답'], key=f"edit_answer_{prob['id']}")
+
+                    edited_explanation = st.text_area("해설", prob['해설'], key=f"edit_explanation_{prob['id']}")
+
+                    # ✅ 수정 저장 버튼
+                    if st.button("문제 수정 저장", key=f"save_edit_{prob['id']}"):
+                        updated_data = {
+                            "문제": problem_text,
+                            "선택지": edited_choices,
+                            "정답": edited_answer,
+                            "해설": edited_explanation,
+                            "문제형식": prob['문제형식'],
+                            "문제출처": prob['문제출처']
+                        }
+                        update_problem_in_db(prob['id'], updated_data)
+                        st.success("문제가 수정되었습니다!")
+
+                    # ✅ 삭제 버튼
+                    if st.button("문제 삭제", key=f"delete_{prob['id']}"):
+                        delete_problem_from_db(prob['id'])
+                        st.warning("문제가 삭제되었습니다!")
 
         # ✅ 문제 CSV 내보내기 다운로드 (여기!)
         st.subheader("문제 CSV 다운로드")
