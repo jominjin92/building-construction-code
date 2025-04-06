@@ -871,7 +871,7 @@ with tab_admin:
                     "explanation": row['해설'],
                     "difficulty": 1,
                     "chapter": "챕터없음",
-                    "type": "건축기사 기출문제,
+                    "type": "건축기사 기출문제",
                     "id": None
                 }
                 save_problem_to_db(problem_data)
