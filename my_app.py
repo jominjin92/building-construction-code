@@ -879,16 +879,17 @@ with tab_admin:
             df = pd.read_csv(uploaded_file)
             for _, row in df.iterrows():
                 problem_data = {
-                    "question": row['문제'],
-                    "choice1": row.get('선택지1', None),
-                    "choice2": row.get('선택지2', None),
-                    "choice3": row.get('선택지3', None),
-                    "choice4": row.get('선택지4', None),
-                    "answer": row['정답'],
-                    "explanation": row['해설'],
-                    "difficulty": 1,
-                    "chapter": "챕터없음",
-                    "type": "건축기사 기출문제",
+                    "문제": row['문제'],
+                    "선택지": [
+                        row.get('선택지1', ''),
+                        row.get('선택지2', ''),
+                        row.get('선택지3', ''),
+                        row.get('선택지4', '')
+                    ],
+                    "정답": str(row.get('정답', '')),
+                    "문제출처": "건축기사 기출문제",
+                    "문제형식": "객관식",
+                    "해설": row.get('해설', ''),
                     "id": None
                 }
                 save_problem_to_db(problem_data)
