@@ -14,7 +14,6 @@ from datetime import datetime
 # ---------------------
 st.set_page_config(layout="wide")
 st.title("건축시공학 문제 생성 및 풀이 시스템")
-st.sidebar.title(f"안녕하세요, {st.session_state['username']}님!")
 
 # 로그 설정
 logging.basicConfig(level=logging.INFO)
@@ -37,6 +36,8 @@ if "show_results" not in st.session_state:
     st.session_state["show_results"] = {}
 if "user_answers" not in st.session_state:
     st.session_state["user_answers"] = {}
+
+st.sidebar.title(f"안녕하세요, {st.session_state['username']}님!")
 
 # DB 연결 및 테이블 초기화
 def init_db():
