@@ -635,7 +635,7 @@ def generate_openai_problem(question_type):
                 result_json.get("선택지4", "")
             ],
             "정답": result_json.get("정답", ""),
-            "문제출처": "건축시공 기출문제",
+            "문제출처": problem_source,
             "문제형식": question_type,
             "해설": result_json.get("해설", ""),
             "id": None
@@ -881,13 +881,14 @@ with tab_admin:
 
         # 문제 생성 (GPT)
         st.subheader("OpenAI 문제 생성")
+        problem_source = st.selectbox("문제 출처 선택", ["건축기사 기출문제", "건축시공 기출문제"])
         if st.button("GPT 문제 생성 (객관식)"):
-            generate_openai_problem("객관식")
-            st.success("GPT 기반 객관식 문제 생성 완료!")
+            generate_openai_problem("객관식", problem_source)
+            st.success(f"{problem_source} 객관식 문제 생성 완료!")
 
         if st.button("GPT 문제 생성 (주관식)"):
-            generate_openai_problem("주관식")
-            st.success("GPT 기반 주관식 문제 생성 완료!")
+            generate_openai_problem("주관식", problem_source)
+            st.success(f"{problem_source} 주관식 문제 생성 완료!")
 
         # CSV 문제 업로드
         st.subheader("CSV 문제 업로드")
