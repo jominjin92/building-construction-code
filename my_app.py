@@ -1098,7 +1098,7 @@ with tab_dashboard:
             GROUP BY p.chapter
         """, conn)
         if not df_chapter.empty:
-            fig = px.bar(df_chapter, x='챕터', y='정답률', color='챕터', text='정답률', title='챕터별 정답률')
+            fig = px.bar(df_chapter, x='챕터', y='정답률', color='챕터', text='정답률', title='챕터별 정답률(건축시공 기출문제)')
             fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
             fig.update_layout(yaxis=dict(tickformat=".2%"), xaxis=dict(tickmode='linear', tick0=1, dtick=1))
             st.plotly_chart(fig, use_container_width=True)
@@ -1113,7 +1113,7 @@ with tab_dashboard:
             GROUP BY p.difficulty
         """, conn)
         if not df_difficulty.empty:
-            fig = px.bar(df_difficulty, x='난이도', y='정답률', color='난이도', text='정답률', title='난이도별 정답률')
+            fig = px.bar(df_difficulty, x='난이도', y='정답률', color='난이도', text='정답률', title='난이도별 정답률(건축시공 기출문제)')
             fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
             fig.update_layout(yaxis=dict(tickformat=".2%"), xaxis=dict(tickmode='linear', tick0=1, dtick=1))
             st.plotly_chart(fig, use_container_width=True)
@@ -1168,7 +1168,7 @@ with tab_dashboard:
             GROUP BY p.chapter
         """, conn, params=(selected_user,))
         if not df_chapter_user.empty:
-            fig = px.bar(df_chapter_user, x='챕터', y='정답률', color='챕터', text='정답률', title='사용자별 챕터별 정답률')
+            fig = px.bar(df_chapter_user, x='챕터', y='정답률', color='챕터', text='정답률', title='사용자별 챕터별 정답률(건축시공 기출문제)')
             fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
             fig.update_layout(yaxis=dict(tickformat=".2%"), xaxis=dict(tickmode='linear', tick0=1, dtick=1))
             st.plotly_chart(fig, use_container_width=True)
@@ -1184,7 +1184,7 @@ with tab_dashboard:
             GROUP BY p.difficulty
         """, conn, params=(selected_user,))
         if not df_difficulty_user.empty:
-            fig = px.bar(df_difficulty_user, x='난이도', y='정답률', color='난이도', text='정답률', title='사용자별 난이도별 정답률')
+            fig = px.bar(df_difficulty_user, x='난이도', y='정답률', color='난이도', text='정답률', title='사용자별 난이도별 정답률(건축시공 기출문제)')
             fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
             fig.update_layout(yaxis=dict(tickformat=".2%"), xaxis=dict(tickmode='linear', tick0=1, dtick=1))
             st.plotly_chart(fig, use_container_width=True)
