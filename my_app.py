@@ -928,10 +928,11 @@ with tab_problem:
                     feedback = st.text_area(f"문제 {idx + 1} 피드백 작성", key=f"feedback_{idx}")
                     if st.button(f"문제 {idx + 1} 피드백 저장", key=f"save_feedback_{idx}"):
                         if feedback.strip():
-                            cursor.execute('''
-                                INSERT INTO feedback (problem_id, feedback_text, user_id) VALUES (?, ?, ?)
-                            ''', (prob['id'], feedback))
-                            conn.commit()
+                            record_feedback(
+                                user_id=st.session_state.username,
+                                problem_id=prob.get('id'),
+                                feedback_text=feedback
+                            )
                             st.success("피드백이 저장되었습니다.")
 
                 st.markdown(f"### 🎯 최종 정답률: **{correct_count} / {total}** ({(correct_count/total)*100:.2f}%)")
