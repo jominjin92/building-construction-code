@@ -1134,6 +1134,7 @@ with tab_dashboard:
                 tickmode='linear',
                 tick0=1,
                 dtick=1
+            )
         )
         st.plotly_chart(fig, use_container_width=True)
     else:
