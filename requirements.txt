@@ -2,3 +2,4 @@ streamlit==1.44.0
 openai==0.27.2
 pandas
 schedule
+plotly>=5.0.0
