@@ -927,7 +927,6 @@ with tab_problem:
                     st.rerun()
 
 # ============================== 관리자 모드 ==============================
-
 with tab_admin:
     if st.session_state.user_role != "admin":
         st.warning("관리자만 접근할 수 있습니다.")
@@ -1050,133 +1049,132 @@ with tab_dashboard:
     st.header("📊 통계 및 대시보드")
 
     conn = sqlite3.connect("problems.db")
-    cursor = conn.cursor()
-
-    # 사용자 구분: 관리자(admin) 또는 일반 사용자
     user_role = st.session_state.get("user_role", "user")
     current_user = st.session_state.get("username", "guest")
 
-    # ✅ 관리자면 전체 통계 + 사용자 선택
+    # 관리자 모드 선택: 전체 or 사용자별
     if user_role == "admin":
-        st.subheader("전체 정답률")
+        mode = st.radio("조회 모드 선택", ["전체 통계", "사용자별 통계"])
+    else:
+        mode = "사용자별 통계"  # 일반 사용자는 개인 통계만
+
+    # 전체 통계 모드
+    if mode == "전체 통계":
+        # ✅ 문제 정답 현황
         df_attempts = pd.read_sql_query("SELECT is_correct FROM attempts", conn)
-    else:
-        st.subheader("내 정답률")
-        df_attempts = pd.read_sql_query("SELECT is_correct FROM attempts WHERE user_id = ?", conn, params=(current_user,))
+        if not df_attempts.empty:
+            total_count = df_attempts.shape[0]
+            correct_count = df_attempts['is_correct'].sum()
+            df_total = pd.DataFrame({
+                '결과': ['정답', '오답'],
+                '비율': [correct_count / total_count, (total_count - correct_count) / total_count]
+            })
+            fig = px.bar(df_total, x='결과', y='비율', color='결과', text='비율', title='문제 정답 현황')
+            fig.update_traces(texttemplate='%{text:.2%}', textposition='outside')
+            fig.update_layout(yaxis=dict(tickformat=".2%"))
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("문제풀이 기록이 없습니다.")
 
-    if not df_attempts.empty:
-        total_count = df_attempts.shape[0]
-        correct_count = df_attempts['is_correct'].sum()
-
-    # ✅ 퍼센트용 데이터프레임
-        df_total = pd.DataFrame({
-            '결과': ['정답', '오답'],
-            '비율': [correct_count / total_count, (total_count - correct_count) / total_count]
-        })
-
-    # ✅ 제목 수정, 퍼센트 포맷 적용
-        fig = px.bar(df_total, x='결과', y='비율', color='결과', text='비율',
-                     title='정답률')  # 제목 변경
-
-        fig.update_traces(texttemplate='%{text:.2%}', textposition='outside')  # 막대 위 텍스트 % 소수점 2자리
-        fig.update_layout(
-            yaxis=dict(tickformat=".2%"),  # 세로축 퍼센트, 소수점 2자리
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
-
-    else:
-        st.info("문제풀이 기록이 없습니다.")
-
-    # ✅ 문제 유형별 시도 수
-    if user_role == "admin":
+        # ✅ 문제 유형별 시도 수
         df_type = pd.read_sql_query("""
             SELECT type AS 문제유형, COUNT(*) AS 시도수
             FROM problems 
             JOIN attempts ON problems.id = attempts.problem_id
             GROUP BY type
         """, conn)
-    else:
-        df_type = pd.read_sql_query("""
+        if not df_type.empty:
+            fig = px.bar(df_type, x='문제유형', y='시도수', color='문제유형', text='시도수', title='문제 유형별 시도 수')
+            fig.update_traces(texttemplate='%{text}', textposition='outside')
+            st.plotly_chart(fig, use_container_width=True)
+
+        # ✅ 챕터별 정답률
+        df_chapter = pd.read_sql_query("""
+            SELECT p.chapter AS 챕터, COUNT(a.id) AS 총시도, 
+                   SUM(a.is_correct) AS 정답수,
+                   ROUND(AVG(a.is_correct)*100, 2) AS 정답률
+            FROM attempts a
+            JOIN problems p ON a.problem_id = p.id
+            GROUP BY p.chapter
+        """, conn)
+        if not df_chapter.empty:
+            fig = px.bar(df_chapter, x='챕터', y='정답률', color='챕터', text='정답률', title='챕터별 정답률')
+            fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
+            fig.update_layout(yaxis=dict(tickformat=".2%"), xaxis=dict(tickmode='linear', tick0=1, dtick=1))
+            st.plotly_chart(fig, use_container_width=True)
+
+        # ✅ 난이도별 정답률
+        df_difficulty = pd.read_sql_query("""
+            SELECT p.difficulty AS 난이도, COUNT(a.id) AS 총시도,
+                   SUM(a.is_correct) AS 정답수,
+                   ROUND(AVG(a.is_correct)*100, 2) AS 정답률
+            FROM attempts a
+            JOIN problems p ON a.problem_id = p.id
+            GROUP BY p.difficulty
+        """, conn)
+        if not df_difficulty.empty:
+            fig = px.bar(df_difficulty, x='난이도', y='정답률', color='난이도', text='정답률', title='난이도별 정답률')
+            fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
+            fig.update_layout(yaxis=dict(tickformat=".2%"), xaxis=dict(tickmode='linear', tick0=1, dtick=1))
+            st.plotly_chart(fig, use_container_width=True)
+
+    # 사용자별 통계 모드
+    if mode == "사용자별 통계":
+        st.subheader("사용자 선택")
+        user_list = pd.read_sql_query("SELECT DISTINCT user_id FROM attempts", conn)
+        selected_user = st.selectbox("사용자 선택", user_list['user_id'])
+
+        # ✅ 사용자별 정답률
+        df_user = pd.read_sql_query("""
+            SELECT COUNT(*) AS 총시도,
+                   SUM(is_correct) AS 정답수,
+                   ROUND(AVG(is_correct)*100, 2) AS 정답률
+            FROM attempts
+            WHERE user_id = ?
+        """, conn, params=(selected_user,))
+        if not df_user.empty and df_user.iloc[0]['총시도'] > 0:
+            correct = df_user.iloc[0]['정답수']
+            total = df_user.iloc[0]['총시도']
+            df_total = pd.DataFrame({
+                '결과': ['정답', '오답'],
+                '비율': [correct / total, (total - correct) / total]
+            })
+            fig = px.bar(df_total, x='결과', y='비율', color='결과', text='비율', title='사용자별 정답률')
+            fig.update_traces(texttemplate='%{text:.2%}', textposition='outside')
+            fig.update_layout(yaxis=dict(tickformat=".2%"))
+            st.plotly_chart(fig, use_container_width=True)
+
+        # ✅ 사용자별 문제 유형별 시도 수
+        df_type_user = pd.read_sql_query("""
             SELECT type AS 문제유형, COUNT(*) AS 시도수
             FROM problems 
             JOIN attempts ON problems.id = attempts.problem_id
             WHERE user_id = ?
             GROUP BY type
-        """, conn, params=(current_user,))
-
-    if not df_type.empty:
-        fig = px.bar(df_type, x='문제유형', y='시도수', color='문제유형', text='시도수',
-                     title='문제 유형별 시도 수')
-        fig.update_traces(texttemplate='%{text}', textposition='outside')
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("문제풀이 기록이 없습니다.")
-
-    # ✅ 챕터별 통계
-    if user_role == "admin":
-        df_chapter = pd.read_sql_query("""
-            SELECT p.chapter AS 챕터, COUNT(a.id) AS 총시도, 
-                   SUM(a.is_correct) AS 정답수,
-                   ROUND(AVG(a.is_correct)*100, 2) AS 정답률
-            FROM attempts a
-            JOIN problems p ON a.problem_id = p.id
-            GROUP BY p.chapter
-        """, conn)
-    else:
-        df_chapter = pd.read_sql_query("""
-            SELECT p.chapter AS 챕터, COUNT(a.id) AS 총시도, 
-                   SUM(a.is_correct) AS 정답수,
-                   ROUND(AVG(a.is_correct)*100, 2) AS 정답률
-            FROM attempts a
-            JOIN problems p ON a.problem_id = p.id
-            WHERE a.user_id = ?
-            GROUP BY p.chapter
-        """, conn, params=(current_user,))
-
-    if not df_chapter.empty:
-        fig = px.bar(df_chapter, x='챕터', y='정답률', color='챕터', text='정답률',
-                     title='챕터별 정답률')
-        fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
-        fig.update_layout(
-            yaxis=dict(tickformat=".2%"),
-            xaxis=dict(tickmode='linear', tick0=1, dtick=1)
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("챕터별 풀이 기록이 없습니다.")
-
-# ✅ 사용자별 통계 (관리자 전용)
-    if user_role == "admin":
-        df_user = pd.read_sql_query("""
-            SELECT user_id AS 사용자, COUNT(*) AS 총시도,
-                   SUM(is_correct) AS 정답수,
-                   ROUND(AVG(is_correct)*100, 2) AS 정답률
-            FROM attempts
-            GROUP BY user_id
-        """, conn)
-
-        if not df_user.empty:
-            fig = px.bar(df_user, x='사용자', y='정답률', color='사용자', text='정답률',
-                         title='사용자별 정답률')
-            fig.update_traces(texttemplate='%{text:.2f}%')
-            fig.update_layout(yaxis=dict(tickformat=".2%"))
+        """, conn, params=(selected_user,))
+        if not df_type_user.empty:
+            fig = px.bar(df_type_user, x='문제유형', y='시도수', color='문제유형', text='시도수', title='사용자별 문제 유형별 시도 수')
+            fig.update_traces(texttemplate='%{text}', textposition='outside')
             st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("사용자별 풀이 기록이 없습니다.")
 
-# ✅ 난이도별 통계
-    if user_role == "admin":
-        df_difficulty = pd.read_sql_query("""
-            SELECT p.difficulty AS 난이도, COUNT(a.id) AS 총시도,
+        # ✅ 사용자별 챕터별 정답률
+        df_chapter_user = pd.read_sql_query("""
+            SELECT p.chapter AS 챕터, COUNT(a.id) AS 총시도, 
                    SUM(a.is_correct) AS 정답수,
                    ROUND(AVG(a.is_correct)*100, 2) AS 정답률
             FROM attempts a
             JOIN problems p ON a.problem_id = p.id
-            GROUP BY p.difficulty
-        """, conn)
-    else:
-        df_difficulty = pd.read_sql_query("""
+            WHERE a.user_id = ?
+            GROUP BY p.chapter
+        """, conn, params=(selected_user,))
+        if not df_chapter_user.empty:
+            fig = px.bar(df_chapter_user, x='챕터', y='정답률', color='챕터', text='정답률', title='사용자별 챕터별 정답률')
+            fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
+            fig.update_layout(yaxis=dict(tickformat=".2%"), xaxis=dict(tickmode='linear', tick0=1, dtick=1))
+            st.plotly_chart(fig, use_container_width=True)
+
+        # ✅ 사용자별 난이도별 정답률
+        df_difficulty_user = pd.read_sql_query("""
             SELECT p.difficulty AS 난이도, COUNT(a.id) AS 총시도,
                    SUM(a.is_correct) AS 정답수,
                    ROUND(AVG(a.is_correct)*100, 2) AS 정답률
@@ -1184,18 +1182,11 @@ with tab_dashboard:
             JOIN problems p ON a.problem_id = p.id
             WHERE a.user_id = ?
             GROUP BY p.difficulty
-        """, conn, params=(current_user,))
-
-    if not df_difficulty.empty:
-        fig = px.bar(df_difficulty, x='난이도', y='정답률', color='난이도', text='정답률',
-                     title='난이도별 정답률')
-        fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
-        fig.update_layout(
-            yaxis=dict(tickformat=".2%"),
-            xaxis=dict(tickmode='linear', tick0=1, dtick=1)
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("난이도별 풀이 기록이 없습니다.")
+        """, conn, params=(selected_user,))
+        if not df_difficulty_user.empty:
+            fig = px.bar(df_difficulty_user, x='난이도', y='정답률', color='난이도', text='정답률', title='사용자별 난이도별 정답률')
+            fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
+            fig.update_layout(yaxis=dict(tickformat=".2%"), xaxis=dict(tickmode='linear', tick0=1, dtick=1))
+            st.plotly_chart(fig, use_container_width=True)
 
     conn.close()
