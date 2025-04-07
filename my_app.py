@@ -916,7 +916,7 @@ with tab_problem:
                     if st.button(f"문제 {idx + 1} 피드백 저장", key=f"save_feedback_{idx}"):
                         if feedback.strip():
                             cursor.execute('''
-                                INSERT INTO feedback (문제ID, 피드백) VALUES (?, ?)
+                                INSERT INTO feedback (problem_id, feedback_text, user_id) VALUES (?, ?, ?)
                             ''', (prob['id'], feedback))
                             conn.commit()
                             st.success("피드백이 저장되었습니다.")
