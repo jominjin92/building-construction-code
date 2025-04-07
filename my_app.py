@@ -525,8 +525,12 @@ def save_problem_to_db(problem_data, db_path="problems.db"):
         "1",  # chapter 기본값
         problem_data.get("문제출처", "건축기사 기출문제")
     ))
+    problem_id = cursor.lastrowid  # ✅ 추가: 저장된 id 가져오기
+
     conn.commit()
     conn.close()
+
+    return problem_id  # ✅ 추가: 반환
 
 # ✅ 문제 불러오기 (DB 기반)
 def load_csv_problems():
@@ -825,6 +829,12 @@ with tab_problem:
                             prob['선택지'] = [prob.get('선택지1', ''), prob.get('선택지2', ''), prob.get('선택지3', ''), prob.get('선택지4', '')]
                             prob['정답'] = str(prob.get('정답', ''))
                             prob['해설'] = prob.get('해설', '')
+
+    # 문제 DB 저장하고 ID 받기
+                            problem_id = save_problem_to_db(prob, db_path="problems.db")
+
+    # 세션에 문제 저장할 때도 problem_id 사용
+                            prob['id'] = problem_id
                             st.session_state.problem_list.append(prob)
                             save_problem_to_db(prob, db_path="problems.db")
 
