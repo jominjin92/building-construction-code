@@ -1045,12 +1045,13 @@ with tab_admin:
             st.markdown(get_table_download_link("problems_export.csv"), unsafe_allow_html=True)
 
 # ============================== 통계 및 대시보드 ==============================
-
 with tab_dashboard:
     st.header("📊 통계 및 대시보드")
 
     conn = sqlite3.connect("problems.db")
     cursor = conn.cursor()
+
+    # ✅ 전체 정답률
     cursor.execute("SELECT is_correct FROM attempts")
     results = cursor.fetchall()
     if results:
@@ -1061,7 +1062,7 @@ with tab_dashboard:
     else:
         st.write("풀이 기록이 없습니다.")
 
-    # ✅ 두 번째 쿼리: 문제 유형별 시도 기록
+    # ✅ 문제 유형별 시도 기록
     cursor.execute("""
         SELECT type, COUNT(*) FROM problems 
         JOIN attempts ON problems.id = attempts.problem_id
@@ -1070,9 +1071,33 @@ with tab_dashboard:
     data = cursor.fetchall()
     if data:
         df = pd.DataFrame(data, columns=['문제형식', '시도 수'])
+        st.subheader("문제 출처별 시도 기록")
         st.bar_chart(df.set_index('문제형식'))
     else:
         st.write("문제풀이 기록이 없습니다.")
 
-    # ✅ 모든 작업 끝난 후에 DB 연결 종료!
+    # ✅ 챕터별 정답률
+    df_chapter = get_chapter_accuracy()
+    if not df_chapter.empty:
+        st.subheader("챕터별 정답률")
+        st.bar_chart(df_chapter.set_index('chapter')['accuracy_percentage'])
+    else:
+        st.write("챕터별 풀이 기록이 없습니다.")
+
+    # ✅ 사용자별 통계
+    df_user = get_user_stats()
+    if not df_user.empty:
+        st.subheader("사용자별 풀이 통계")
+        st.bar_chart(df_user.set_index('user_id')['accuracy_percentage'])
+    else:
+        st.write("사용자 풀이 기록이 없습니다.")
+
+    # ✅ 난이도별 통계
+    df_difficulty = get_difficulty_stats()
+    if not df_difficulty.empty:
+        st.subheader("난이도별 풀이 통계")
+        st.bar_chart(df_difficulty.set_index('difficulty')['accuracy_percentage'])
+    else:
+        st.write("난이도별 풀이 기록이 없습니다.")
+
     conn.close()
