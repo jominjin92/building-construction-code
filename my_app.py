@@ -934,8 +934,8 @@ with tab_admin:
         # ✅ 총 문제 수 표시
         st.markdown(f"**총 {len(filtered_problems)}개 문제가 있습니다.**")
 
-objective_count = 1
-subjective_count = 1
+        objective_count = 1
+        subjective_count = 1
 
         if not filtered_problems:
             st.write("선택한 출처에 해당하는 문제가 없습니다.")
