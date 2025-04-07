@@ -1129,11 +1129,8 @@ with tab_dashboard:
                      title='챕터별 정답률')
         fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
         fig.update_layout(
-            yaxis=dict(tickformat=".2%")
+            yaxis=dict(tickformat=".2%"),
             xaxis=dict(tickmode='linear', tick0=1, dtick=1)
-                tickmode='linear',
-                tick0=1,
-                dtick=1
         )
         st.plotly_chart(fig, use_container_width=True)
     else:
@@ -1186,9 +1183,6 @@ with tab_dashboard:
         fig.update_layout(
             yaxis=dict(tickformat=".2%"),
             xaxis=dict(tickmode='linear', tick0=1, dtick=1)
-                tickmode='linear',
-                tick0=1,
-                dtick=1
         )
         st.plotly_chart(fig, use_container_width=True)
     else:
