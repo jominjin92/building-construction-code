@@ -158,13 +158,17 @@ def create_feedback_table(db_path="problems.db"):
 create_feedback_table("problems.db")
 
 def record_feedback(user_id, problem_id, feedback_text, db_path="problems.db"):
-    conn = sqlite3.connect("problems.db")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    c = conn.cursor()
-    c.execute("INSERT INTO feedback (user_id, problem_id, feedback_text) VALUES (?, ?, ?)",
-              (user_id, problem_id, feedback_text))
-    conn.commit()
-    conn.close()
+    try:
+        cursor.execute("""
+            INSERT INTO feedback (user_id, problem_id, feedback_text) VALUES (?, ?, ?)
+        """, (user_id, problem_id, feedback_text))
+        conn.commit()
+    except Exception as e:
+        st.error(f"피드백 저장 중 오류 발생: {e}")
+    finally:
+        conn.close()
 
 def get_all_feedback(db_path="problems.db"):
     conn = sqlite3.connect("problems.db")
