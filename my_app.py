@@ -888,7 +888,7 @@ with tab_admin:
 
         # 문제 생성 (GPT)
         st.subheader("OpenAI 문제 생성")
-        problem_source = st.selectbox("문제 출처 선택", ["건축기사 기출문제", "건축시공 기출문제"], key="select_problem_source")
+        problem_source = st.selectbox("문제 출처 선택", ["건축시공 기출문제"], key="select_problem_source")
         if st.button("GPT 문제 생성 (객관식)"):
             generate_openai_problem("객관식", problem_source)
             st.success(f"{problem_source} 객관식 문제 생성 완료!")
@@ -924,7 +924,7 @@ with tab_admin:
         st.subheader("문제 목록")
 
         # ✅ 문제 출처 선택
-        problem_sources = ["건축기사 기출문제", "건축시공 기출문제"]
+        problem_sources = ["건축시공 기출문제"]
         selected_source = st.selectbox("문제 출처 선택", problem_sources, key="select_problem_list_source")
 
         # 전체 문제 불러오기
