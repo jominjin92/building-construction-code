@@ -590,6 +590,8 @@ def load_problems_from_db(problem_source, question_format, limit=1, db_path="pro
 
 # ✅ 문제 수정 함수 (관리자용)
 def update_problem_in_db(problem_id, updated_data):
+    conn = sqlite3.connect("problems.db")
+    cursor = conn.cursor()
     cursor.execute('''
         UPDATE problems SET 문제=?, 선택지1=?, 선택지2=?, 선택지3=?, 선택지4=?, 정답=?, 해설=?, 문제형식=?, 문제출처=? WHERE id=?
     ''', (
@@ -605,6 +607,7 @@ def update_problem_in_db(problem_id, updated_data):
         problem_id
     ))
     conn.commit()
+    conn.close()
 
 # ✅ 문제 삭제 함수 (관리자용)
 def delete_problem_from_db(problem_id):
@@ -971,7 +974,15 @@ with tab_admin:
         st.subheader("문제 목록")
 
         # ✅ 문제 출처 선택
-        problem_sources = ["건축시공 기출문제"]
+        conn = sqlite3.connect("problems.db")
+        problem_sources_df = pd.read_sql_query("SELECT DISTINCT type AS 문제출처 FROM problems", conn)
+        conn.close()
+
+        if not problem_sources_df.empty:
+            problem_sources = problem_sources_df['문제출처'].tolist()
+        else:
+            problem_sources = []
+
         selected_source = st.selectbox("문제 출처 선택", problem_sources, key="select_problem_list_source")
 
         # 전체 문제 불러오기
