@@ -857,7 +857,7 @@ with tab_problem:
                             }
 
                             saved_problem = save_problem_to_db(problem_data, db_path="problems.db")
-                            st.session_state.problem_list.append(saved_problem))
+                            st.session_state.problem_list.append(saved_problem)
 
                         st.success(f"CSV에서 문제 {len(st.session_state.problem_list)}개 불러오기 완료!")
                     else:
