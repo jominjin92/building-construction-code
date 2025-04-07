@@ -850,8 +850,13 @@ with tab_problem:
                             prob['해설'] = prob.get('해설', '')
 
                             problem_data = {
-                                "문제": prob.get("문제", ""),
-                                "선택지": prob.get("선택지", ["", "", "", ""]),
+                                "문제": prob.get("question", ""),  # ✅ 수정
+                                "선택지": [
+                                    prob.get('선택지1', ''),
+                                    prob.get('선택지2', ''),
+                                    prob.get('선택지3', ''),
+                                    prob.get('선택지4', '')
+                                ],
                                 "정답": prob.get("정답", ""),
                                 "해설": prob.get("해설", ""),
                                 "문제출처": prob.get("문제출처", "건축기사 기출문제"),
