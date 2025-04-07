@@ -836,7 +836,6 @@ with tab_problem:
     # 세션에 문제 저장할 때도 problem_id 사용
                             prob['id'] = problem_id
                             st.session_state.problem_list.append(prob)
-                            save_problem_to_db(prob, db_path="problems.db")
 
                         st.success(f"CSV에서 문제 {len(st.session_state.problem_list)}개 불러오기 완료!")
                     else:
