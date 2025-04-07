@@ -1076,7 +1076,7 @@ with tab_dashboard:
 
     # ✅ 제목 수정, 퍼센트 포맷 적용
         fig = px.bar(df_total, x='결과', y='비율', color='결과', text='비율',
-                     title='문제 정답 현황')  # 제목 변경
+                     title='정답률')  # 제목 변경
 
         fig.update_traces(texttemplate='%{text:.2%}', textposition='outside')  # 막대 위 텍스트 % 소수점 2자리
         fig.update_layout(
@@ -1198,21 +1198,5 @@ with tab_dashboard:
     else:
         st.info("난이도별 풀이 기록이 없습니다.")
 
-# ✅ 전체 정답률 (메인)
-    if not df_attempts.empty:
-        total_count = df_attempts.shape[0]
-        correct_count = df_attempts['is_correct'].sum()
-        df_total = pd.DataFrame({
-            '결과': ['정답', '오답'],
-            '수': [correct_count, total_count - correct_count],
-            '비율': [correct_count / total_count * 100, (total_count - correct_count) / total_count * 100]
-        })
-        fig = px.bar(df_total, x='결과', y='비율', color='결과', text='비율',
-                     title='정답률')
-        fig.update_traces(texttemplate='%{text:.2f}%')
-        fig.update_layout(yaxis=dict(tickformat=".2%"))
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("문제풀이 기록이 없습니다.")
 
     conn.close()
