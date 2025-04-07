@@ -1045,7 +1045,6 @@ with tab_dashboard:
 
     conn = sqlite3.connect("problems.db")
     cursor = conn.cursor()
-
     cursor.execute("SELECT is_correct FROM attempts")
     results = cursor.fetchall()
     if results:
