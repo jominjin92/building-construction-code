@@ -1062,23 +1062,14 @@ with tab_dashboard:
     user_role = st.session_state.get("user_role", "user")
     current_user = st.session_state.get("username", "guest")
 
-    # ✅ 대분류: 문제풀이 통계 / 피드백 통계 선택
-    main_category = st.selectbox("통계 범위 선택", ["문제 풀이 통계", "피드백 통계"])
-
-    # ✅ 소분류: 전체 / 사용자별 선택
-    if user_role == "admin":
-        sub_category = st.selectbox("세부 통계 선택", ["전체 통계", "사용자별 통계"])
-    else:
-        sub_category = "사용자별 통계"
-
     # =========================
     # 문제 풀이 통계
     # =========================
-    if main_category == "문제 풀이 통계":
-        if sub_category == "전체 통계":
+    if stat_scope == "문제 풀이 통계":
+        if stat_detail == "전체 통계":
             user_filter = ""
             user_params = ()
-        elif sub_category == "사용자별 통계" and user_role == "admin":
+        elif stat_detail == "사용자별 통계" and user_role == "admin":
             users = pd.read_sql_query("SELECT DISTINCT user_id FROM attempts", conn)
             selected_user = st.selectbox("사용자를 선택하세요", users['user_id'])
             user_filter = "WHERE a.user_id = ?"
@@ -1172,7 +1163,7 @@ with tab_dashboard:
             st.info("난이도별 풀이 기록이 없습니다.")
 
         # ✅ 사용자별 통계 (관리자 전용)
-        if user_role == "admin" and sub_category == "전체 통계":
+        if user_role == "admin" and stat_detail == "전체 통계":
             df_user = pd.read_sql_query("""
                 SELECT user_id AS 사용자, COUNT(*) AS 총시도,
                        SUM(is_correct) AS 정답수,
@@ -1193,11 +1184,11 @@ with tab_dashboard:
     # =========================
     # 피드백 통계
     # =========================
-    elif main_category == "피드백 통계":
+    elif stat_scope == "피드백 통계":
         st.subheader("피드백 현황")
 
         # 전체 피드백 or 사용자 피드백 쿼리
-        if sub_category == "전체 통계":
+        if stat_detail == "전체 통계":
             df_feedback = pd.read_sql_query("""
                 SELECT user_id AS 사용자, problem_id AS 문제ID, feedback_text AS 피드백, feedback_time AS 작성시간
                 FROM feedback
@@ -1214,7 +1205,7 @@ with tab_dashboard:
         if not df_feedback.empty:
             st.markdown(f"총 피드백 수: **{df_feedback.shape[0]}**")
             # 사용자별 피드백 수 (전체 통계일 때만)
-            if sub_category == "전체 통계":
+            if stat_detail == "전체 통계":
                 df_feedback_count = df_feedback['사용자'].value_counts().reset_index()
                 df_feedback_count.columns = ['사용자', '피드백 수']
                 fig = px.bar(df_feedback_count, x='사용자', y='피드백 수', text='피드백 수', color='사용자',
