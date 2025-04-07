@@ -534,8 +534,11 @@ def save_problem_to_db(problem_data, db_path="problems.db"):
     conn.commit()
     conn.close()
 
-    problem_data['id'] = problem_id
-    return problem_data
+    problem_data['id'] = problem_id  # 이 줄 유지
+    return {
+        **problem_data,
+        'id': problem_id  # id를 확실히 넣어 반환
+    }
 
 # ✅ 문제 불러오기 (DB 기반)
 def load_csv_problems():
