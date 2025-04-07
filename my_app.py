@@ -846,6 +846,7 @@ with tab_problem:
                             prob['정답'] = str(prob.get('정답', ''))
                             prob['해설'] = prob.get('해설', '')
                             saved_problem = save_problem_to_db(prob, db_path="problems.db")
+                            prob['id'] = saved_problem['id']
                             st.session_state.problem_list.append(prob)
 
                         st.success(f"CSV에서 문제 {len(st.session_state.problem_list)}개 불러오기 완료!")
