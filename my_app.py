@@ -1198,5 +1198,4 @@ with tab_dashboard:
     else:
         st.info("난이도별 풀이 기록이 없습니다.")
 
-
     conn.close()
