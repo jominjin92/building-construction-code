@@ -848,15 +848,15 @@ with tab_problem:
 
                             problem_data = {
                                 "문제": prob.get("문제", ""),
-                                "선택지": prob['선택지'],
-                                "정답": prob['정답'],
-                                "해설": prob['해설'],
-                                "문제출처": prob['문제출처'],
-                                "문제형식": prob['문제형식'],
-                                "id": prob['id']
+                                "선택지": prob.get("선택지", ["", "", "", ""]),
+                                "정답": prob.get("정답", ""),
+                                "해설": prob.get("해설", ""),
+                                "문제출처": prob.get("문제출처", "건축기사 기출문제"),
+                                "문제형식": prob.get("문제형식", "객관식"),
+                                "id": None
                             }
 
-                            saved_problem = save_problem_to_db(prob, db_path="problems.db")
+                            saved_problem = save_problem_to_db(problem_data, db_path="problems.db")
                             prob['id'] = saved_problem['id']
                             st.session_state.problem_list.append(prob)
 
