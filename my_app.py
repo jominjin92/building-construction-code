@@ -913,7 +913,7 @@ with tab_problem:
 
                 st.markdown(f"### 🎯 최종 정답률: **{correct_count} / {total}** ({(correct_count/total)*100:.2f}%)")
 
-                if st.button("다시 풀기"):
+                if st.button("다시 풀기", key=f"retry_button_{idx}"):
                     for key in list(st.session_state.keys()):
                         if key.startswith("answer_") or key in ["problem_list", "user_answers", "show_problems", "show_results"]:
                             del st.session_state[key]
