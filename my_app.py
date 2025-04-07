@@ -507,14 +507,12 @@ json) 없이 순수 JSON만 출력해 주세요.
 
 # 문제 DB 저장 함수
 def save_problem_to_db(problem_data, db_path="problems.db"):
-    conn = sqlite3.connect("problems.db")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     choices = problem_data.get("선택지", ["", "", "", ""])
     while len(choices) < 4:
         choices.append("")
-
-    problem_data['id'] = str(uuid.uuid4())
 
     cursor.execute('''
         INSERT INTO problems (question, choice1, choice2, choice3, choice4, answer, explanation, difficulty, chapter, type)
@@ -527,11 +525,11 @@ def save_problem_to_db(problem_data, db_path="problems.db"):
         choices[3],
         problem_data.get("정답", ""),
         problem_data.get("해설", ""),
-        3,  # difficulty 기본값
-        "1",  # chapter 기본값
-        problem_data.get("type", "건축기사 기출문제")
+        3,  # 기본 난이도
+        "1",  # 기본 챕터
+        problem_data.get("문제출처", "건축기사 기출문제")
     ))
-    problem_id = cursor.lastrowid  # ✅ 추가: 저장된 id 가져오기
+    problem_id = cursor.lastrowid  # ⬅️ 숫자형 ID 사용
 
     conn.commit()
     conn.close()
