@@ -531,7 +531,7 @@ def save_problem_to_db(problem_data, db_path="problems.db"):
 # ✅ 문제 불러오기 (DB 기반)
 def load_csv_problems():
     try:
-        df = pd.read_csv("456.csv")  # 파일명 사용자가 업로드한 것으로 지정
+        df = pd.read_csv("456.csv")
         problems = df.to_dict(orient='records')
         for problem in problems:
             problem['id'] = str(uuid.uuid4())
@@ -821,11 +821,12 @@ with tab_problem:
                         for prob in problems:
                             prob['id'] = str(uuid.uuid4())
                             prob['문제출처'] = '건축기사 기출문제'
-                            prob['문제형식'] = '객관식'  # ✅ 이거 추가!!!
+                            prob['문제형식'] = '객관식'
                             prob['선택지'] = [prob.get('선택지1', ''), prob.get('선택지2', ''), prob.get('선택지3', ''), prob.get('선택지4', '')]
                             prob['정답'] = str(prob.get('정답', ''))
                             prob['해설'] = prob.get('해설', '')
-                            st.session_state.problem_list.append(prob)  # ✅ 이 부분이 핵심!!
+                            st.session_state.problem_list.append(prob)
+                            save_problem_to_db(prob, db_path="problems.db"
 
                         st.success(f"CSV에서 문제 {len(st.session_state.problem_list)}개 불러오기 완료!")
                     else:
