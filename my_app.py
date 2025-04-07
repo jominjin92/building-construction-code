@@ -715,14 +715,22 @@ def get_all_problems_dict(db_path="problems.db"):
 
     problem_list = []
     for row in rows:
+        # 선택지가 모두 비어 있으면 주관식
+        if not any([row[2], row[3], row[4], row[5]]):
+            question_format = "주관식"
+        else:
+            question_format = "객관식"
+
         problem_list.append({
             "id": row[0],
             "문제": row[1],
             "선택지": [row[2], row[3], row[4], row[5]] if row[2] else [],
             "정답": row[6],
             "해설": row[7],
-            "문제형식": row[8],
-            "문제출처": row[9]
+            "난이도": row[8],
+            "챕터": row[9],
+            "문제형식": question_format,
+            "문제출처": row[10]
         })
     return problem_list
 
