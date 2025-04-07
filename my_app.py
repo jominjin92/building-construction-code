@@ -1215,16 +1215,28 @@ with tab_dashboard:
         # 전체 피드백 or 사용자 피드백 쿼리
         if stat_detail == "전체 통계":
             df_feedback = pd.read_sql_query("""
-                SELECT user_id AS 사용자, problem_id AS 문제ID, feedback_text AS 피드백, feedback_time AS 작성시간
-                FROM feedback
-                ORDER BY feedback_time DESC
+                SELECT
+                    f.user_id AS 사용자, 
+                    f.problem_id AS 문제ID, 
+                    p.question AS 문제내용,
+                    f.feedback_text AS 피드백, 
+                    f.feedback_time AS 작성시간
+                FROM feedback f
+                LEFT JOIN problems p ON f.problem_id = p.id
+                ORDER BY f.feedback_time DESC
             """, conn)
         else:
             df_feedback = pd.read_sql_query("""
-                SELECT user_id AS 사용자, problem_id AS 문제ID, feedback_text AS 피드백, feedback_time AS 작성시간
-                FROM feedback
-                WHERE user_id = ?
-                ORDER BY feedback_time DESC
+                SELECT
+                    f.user_id AS 사용자, 
+                    f.problem_id AS 문제ID, 
+                    p.question AS 문제내용,
+                    f.feedback_text AS 피드백, 
+                    f.feedback_time AS 작성시간
+                FROM feedback f
+                LEFT JOIN problems p ON f.problem_id = p.id
+                WHERE f.user_id = ?
+                ORDER BY f.feedback_time DESC
             """, conn, params=(current_user,))
 
         if not df_feedback.empty:
