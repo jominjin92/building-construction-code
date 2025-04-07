@@ -518,7 +518,7 @@ def save_problem_to_db(problem_data, db_path="problems.db"):
         INSERT INTO problems (question, choice1, choice2, choice3, choice4, answer, explanation, difficulty, chapter, type)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
-        problem_data.get("문제", ""),
+        problem_data.get("question", problem_data.get("문제", ""))
         choices[0],
         choices[1],
         choices[2],
@@ -985,7 +985,7 @@ with tab_admin:
             df = pd.read_csv(uploaded_file)
             for _, row in df.iterrows():
                 problem_data = {
-                    "문제": row['문제'],
+                    "question": row['문제'],
                     "선택지": [
                         row.get('선택지1', ''),
                         row.get('선택지2', ''),
@@ -1229,6 +1229,14 @@ with tab_dashboard:
     elif stat_scope == "피드백 통계":
         st.subheader("피드백 현황")
 
+        selected_user = None
+        if stat_detail == "사용자별 피드백 통계":
+            users = pd.read_sql_query("SELECT DISTINCT user_id FROM feedback", conn)
+            if not users.empty:
+                selected_user = st.selectbox("사용자를 선택하세요", users['user_id'])
+            else:
+                st.info("피드백을 작성한 사용자가 없습니다.")
+
         # 전체 피드백 or 사용자 피드백 쿼리
         if stat_detail == "전체 통계":
             df_feedback = pd.read_sql_query("""
@@ -1242,7 +1250,7 @@ with tab_dashboard:
                 LEFT JOIN problems p ON f.problem_id = p.id
                 ORDER BY f.feedback_time DESC
             """, conn)
-        else:
+        elif selected_user:
             df_feedback = pd.read_sql_query("""
                 SELECT
                     f.user_id AS 사용자, 
@@ -1255,6 +1263,8 @@ with tab_dashboard:
                 WHERE f.user_id = ?
                 ORDER BY f.feedback_time DESC
             """, conn, params=(current_user,))
+        else:
+                df_feedback = pd.DataFrame()
 
         if not df_feedback.empty:
             st.markdown(f"총 피드백 수: **{df_feedback.shape[0]}**")
