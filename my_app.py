@@ -1048,6 +1048,13 @@ with tab_admin:
 with tab_dashboard:
     st.header("📊 통계 및 대시보드")
 
+    # ✅ 1. 선택 UI 추가
+    stat_scope = st.selectbox("통계 범위 선택", ["문제 풀이 통계", "피드백 통계"])
+    if stat_scope == "문제 풀이 통계":
+        stat_detail = st.selectbox("세부 통계 선택", ["전체 통계", "사용자별 통계"])
+    elif stat_scope == "피드백 통계":
+        stat_detail = st.selectbox("세부 통계 선택", ["전체 피드백 통계", "사용자별 피드백 통계"])
+
     conn = sqlite3.connect("problems.db")
     cursor = conn.cursor()
 
@@ -1056,11 +1063,11 @@ with tab_dashboard:
     current_user = st.session_state.get("username", "guest")
 
     # ✅ 대분류: 문제풀이 통계 / 피드백 통계 선택
-    main_category = st.radio("통계 범위 선택", ["문제 풀이 통계", "피드백 통계"])
+    main_category = st.selectbox("통계 범위 선택", ["문제 풀이 통계", "피드백 통계"])
 
     # ✅ 소분류: 전체 / 사용자별 선택
     if user_role == "admin":
-        sub_category = st.radio("세부 통계 선택", ["전체 통계", "사용자별 통계"])
+        sub_category = st.selectbox("세부 통계 선택", ["전체 통계", "사용자별 통계"])
     else:
         sub_category = "사용자별 통계"
 
@@ -1068,10 +1075,14 @@ with tab_dashboard:
     # 문제 풀이 통계
     # =========================
     if main_category == "문제 풀이 통계":
-        # --- 전체 또는 사용자별 쿼리 조건 ---
         if sub_category == "전체 통계":
             user_filter = ""
             user_params = ()
+        elif sub_category == "사용자별 통계" and user_role == "admin":
+            users = pd.read_sql_query("SELECT DISTINCT user_id FROM attempts", conn)
+            selected_user = st.selectbox("사용자를 선택하세요", users['user_id'])
+            user_filter = "WHERE a.user_id = ?"
+            user_params = (selected_user,)
         else:
             user_filter = "WHERE a.user_id = ?"
             user_params = (current_user,)
