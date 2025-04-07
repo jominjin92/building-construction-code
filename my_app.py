@@ -1129,8 +1129,8 @@ with tab_dashboard:
                      title='챕터별 정답률')
         fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
         fig.update_layout(
-            yaxis_tickformat='%',
-            xaxis=dict(
+            yaxis=dict(tickformat=".2%"
+            xaxis=dict(tickmode='linear', tick0=1, dtick=1)
                 tickmode='linear',
                 tick0=1,
                 dtick=1
@@ -1153,8 +1153,8 @@ with tab_dashboard:
         if not df_user.empty:
             fig = px.bar(df_user, x='사용자', y='정답률', color='사용자', text='정답률',
                          title='사용자별 정답률')
-            fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
-            fig.update_layout(yaxis_tickformat='%')
+            fig.update_traces(texttemplate='%{text:.2f}%')
+            fig.update_layout(yaxis=dict(tickformat=".2%"))
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("사용자별 풀이 기록이 없습니다.")
@@ -1185,8 +1185,8 @@ with tab_dashboard:
                      title='난이도별 정답률')
         fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
         fig.update_layout(
-            yaxis_tickformat='%',
-            xaxis=dict(
+            yaxis=dict(tickformat=".2%"),
+            xaxis=dict(tickmode='linear', tick0=1, dtick=1)
                 tickmode='linear',
                 tick0=1,
                 dtick=1
@@ -1207,8 +1207,8 @@ with tab_dashboard:
         })
         fig = px.bar(df_total, x='결과', y='비율', color='결과', text='비율',
                      title='정답률')
-        fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
-        fig.update_layout(yaxis_tickformat='%')
+        fig.update_traces(texttemplate='%{text:.2f}%')
+        fig.update_layout(yaxis=dict(tickformat=".2%"))
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("문제풀이 기록이 없습니다.")
