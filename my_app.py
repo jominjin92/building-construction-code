@@ -518,7 +518,7 @@ def save_problem_to_db(problem_data, db_path="problems.db"):
         INSERT INTO problems (question, choice1, choice2, choice3, choice4, answer, explanation, difficulty, chapter, type)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
-        problem_data.get("question", problem_data.get("문제", ""))
+        problem_data.get("question", problem_data.get("문제", "")),
         choices[0],
         choices[1],
         choices[2],
