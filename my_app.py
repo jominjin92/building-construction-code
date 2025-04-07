@@ -204,7 +204,7 @@ def create_attempts_table(db_path="problems.db"):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT,
             problem_id INTEGER,
-            user_answer TEXT,   -- 추가된 컬럼: 사용자가 선택한 답안
+            user_answer TEXT,
             is_correct INTEGER,
             attempt_time DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -881,11 +881,19 @@ with tab_problem:
                 correct_answer = str(prob["정답"]).strip()
 
                 # 시도 기록 저장
+                conn = sqlite3.connect("problems.db")
+                cursor = conn.cursor()
                 cursor.execute('''
-                    INSERT INTO attempts (문제ID, 사용자가입력한정답, 실제정답, 정답여부)
+                    INSERT INTO attempts (user_id, problem_id, user_answer, is_correct)
                     VALUES (?, ?, ?, ?)
-                ''', (prob['id'], user_answer, correct_answer, '정답' if user_answer == correct_answer else '오답'))
+                ''', (
+                    st.session_state.username,  # user_id
+                    prob['id'],                 # problem_id
+                    user_answer,                # user_answer
+                    1 if user_answer == correct_answer else 0  # is_correct (정답 여부)
+                ))
                 conn.commit()
+                conn.close()
 
                 if user_answer == correct_answer:
                     st.success(f"문제 {idx + 1}: 정답 🎉")
