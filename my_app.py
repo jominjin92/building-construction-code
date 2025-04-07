@@ -170,6 +170,7 @@ def record_feedback(user_id, problem_id, feedback_text, db_path="problems.db"):
     finally:
         conn.close()
 
+
 def get_all_feedback(db_path="problems.db"):
     conn = sqlite3.connect("problems.db")
     cursor = conn.cursor()
@@ -535,7 +536,8 @@ def save_problem_to_db(problem_data, db_path="problems.db"):
     conn.commit()
     conn.close()
 
-    return problem_id  # ✅ 추가: 반환
+    problem_data['id'] = problem_id
+    return problem_data
 
 # ✅ 문제 불러오기 (DB 기반)
 def load_csv_problems():
@@ -751,32 +753,41 @@ def display_problems():
 
 # ✅ 전체 문제 조회 (관리자용)
 def get_all_problems_dict(db_path="problems.db"):
-    conn = sqlite3.connect("problems.db")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM problems")
     rows = cursor.fetchall()
+
+    # ✅ 컬럼 이름 가져오기
+    columns = [description[0] for description in cursor.description]
     conn.close()
 
     problem_list = []
     for row in rows:
-        # 선택지가 모두 비어 있으면 주관식
-        if not any([row[2], row[3], row[4], row[5]]):
+        problem_dict = dict(zip(columns, row))
+
+        # 선택지 처리 (안정성 있게)
+        choices = [problem_dict.get('choice1', ''), problem_dict.get('choice2', ''), problem_dict.get('choice3', ''), problem_dict.get('choice4', '')]
+        if not any(choices):
             question_format = "주관식"
+            choices = []  # 선택지가 없으면 빈 리스트
         else:
             question_format = "객관식"
 
+        # ✅ 최종 딕셔너리 형태로 저장
         problem_list.append({
-            "id": row[0],
-            "문제": row[1],
-            "선택지": [row[2], row[3], row[4], row[5]] if row[2] else [],
-            "정답": row[6],
-            "해설": row[7],
-            "난이도": row[8],
-            "챕터": row[9],
+            "id": problem_dict.get('id'),
+            "문제": problem_dict.get('question', ''),
+            "선택지": choices,
+            "정답": problem_dict.get('answer', ''),
+            "해설": problem_dict.get('explanation', ''),
+            "난이도": problem_dict.get('difficulty', 3),
+            "챕터": problem_dict.get('chapter', "1"),
             "문제형식": question_format,
-            "문제출처": row[10]
+            "문제출처": problem_dict.get('type', '건축기사 기출문제')
         })
+
     return problem_list
 
 # ✅ 로그인 함수
@@ -836,9 +847,7 @@ with tab_problem:
                             prob['선택지'] = [prob.get('선택지1', ''), prob.get('선택지2', ''), prob.get('선택지3', ''), prob.get('선택지4', '')]
                             prob['정답'] = str(prob.get('정답', ''))
                             prob['해설'] = prob.get('해설', '')
-                            problem_id = save_problem_to_db(prob, db_path="problems.db")
-
-                            prob['id'] = problem_id
+                            saved_problem = save_problem_to_db(prob, db_path="problems.db")
                             st.session_state.problem_list.append(prob)
 
                         st.success(f"CSV에서 문제 {len(st.session_state.problem_list)}개 불러오기 완료!")
