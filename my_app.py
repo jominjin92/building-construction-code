@@ -1262,7 +1262,7 @@ with tab_dashboard:
                 LEFT JOIN problems p ON f.problem_id = p.id
                 WHERE f.user_id = ?
                 ORDER BY f.feedback_time DESC
-            """, conn, params=(selected_user,)
+            """, conn, params=(selected_user,))
         else:
                 df_feedback = pd.DataFrame()
 
