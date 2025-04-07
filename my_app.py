@@ -933,7 +933,10 @@ with tab_admin:
         # ✅ 선택한 출처에 맞는 문제만 필터링
         filtered_problems = [prob for prob in problems if prob['문제출처'] == selected_source]
 
-        if not filtered_problems:
+        # ✅ 총 문제 수 표시
+        st.markdown(f"**총 {len(filtered_problems)}개 문제가 있습니다.**")
+
+            if not filtered_problems:
             st.write("선택한 출처에 해당하는 문제가 없습니다.")
         else:
             for prob in filtered_problems:
