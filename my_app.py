@@ -43,8 +43,6 @@ else:
     st.error("API key 설정 오류: secrets.toml에 OPENAI_API_KEY가 없습니다.")
     st.stop()
 
-
-
 # Streamlit 기본 설정
 st.title("건축시공학 문제 생성 및 풀이")
 
@@ -936,11 +934,23 @@ with tab_admin:
         # ✅ 총 문제 수 표시
         st.markdown(f"**총 {len(filtered_problems)}개 문제가 있습니다.**")
 
+objective_count = 1
+subjective_count = 1
+
         if not filtered_problems:
             st.write("선택한 출처에 해당하는 문제가 없습니다.")
         else:
             for prob in filtered_problems:
-                with st.expander(f"문제 ID {prob['id']}: {prob['문제'][:30]}..."):
+                # 문제 형식에 따라 제목 다르게 지정
+                if prob['문제형식'] == '객관식':
+                    title = f"객관식 문제 {objective_count}번: {prob['문제'][:30]}..."
+                    objective_count += 1
+                else:
+                    title = f"주관식 문제 {subjective_count}번: {prob['문제'][:30]}..."
+                    subjective_count += 1
+
+                with st.expander(title):
+                    # 기존 코드 그대로 유지!
                     problem_text = st.text_area("문제 내용", prob['문제'], key=f"edit_problem_{prob['id']}")
 
                     if prob['문제형식'] == "객관식":
