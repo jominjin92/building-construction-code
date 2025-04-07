@@ -1127,7 +1127,7 @@ with tab_dashboard:
     if not df_chapter.empty:
         fig = px.bar(df_chapter, x='챕터', y='정답률', color='챕터', text='정답률',
                      title='챕터별 정답률')
-        fig.update_traces(texttemplate='%{text}%', textposition='outside')
+        fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
         fig.update_layout(
             yaxis_tickformat='%',
             xaxis=dict(
@@ -1153,7 +1153,7 @@ with tab_dashboard:
         if not df_user.empty:
             fig = px.bar(df_user, x='사용자', y='정답률', color='사용자', text='정답률',
                          title='사용자별 정답률')
-            fig.update_traces(texttemplate='%{text}%', textposition='outside')
+            fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
             fig.update_layout(yaxis_tickformat='%')
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -1183,7 +1183,7 @@ with tab_dashboard:
     if not df_difficulty.empty:
         fig = px.bar(df_difficulty, x='난이도', y='정답률', color='난이도', text='정답률',
                      title='난이도별 정답률')
-        fig.update_traces(texttemplate='%{text}%', textposition='outside')
+        fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
         fig.update_layout(
             yaxis_tickformat='%',
             xaxis=dict(
