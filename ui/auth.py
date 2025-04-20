@@ -31,12 +31,11 @@ def login_ui():
                 st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
         st.stop()
 
+from db.user_db import verify_user
+
 def _check_credentials(username, password):
-    credentials = {
-        "admin": "1234",
-        "user1": "pass1",
-        "user2": "pass2",
-        "user3": "pass3",
-        "user4": "pass4"
-    }
-    return credentials.get(username) == password
+    role = verify_user(username, password)
+    if role:
+        st.session_state.user_role = role
+        return True
+    return False
