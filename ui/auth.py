@@ -28,7 +28,11 @@ def login_ui():
                 st.session_state["user_role"] = "admin" if username == "admin" else "user"
                 st.success("로그인 성공!")
             else:
+                st.session_state["logged_in"] = False
+                st.session_state["username"] = None
+                st.session_state["user_role"] = None
                 st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
+                st.experimental_rerun()
         st.stop()
 
 from db.user_db import verify_user

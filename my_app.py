@@ -6,13 +6,28 @@ from ui.auth import init_session_state, login_ui
 from ui.problem_ui import render_problem_tab
 from ui.admin_ui import render_admin_tab
 from ui.dashboard_ui import render_dashboard_tab
+from db.user_db import init_user_db, add_user
+import sqlite3
+
+# ✅ admin 계정 존재 시 중복 방지 함수
+def ensure_admin_exists():
+    conn = sqlite3.connect("users.db")
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
+    exists = c.fetchone()[0]
+    conn.close()
+    if not exists:
+        add_user("admin", "1234", "admin")
 
 # -------------------- 시스템 초기화 --------------------
 init_session_state()
 init_db()
+init_user_db()
 create_feedback_table()
 create_attempts_table()
 update_db_types()
+
+ensure_admin_exists()  # ✅ 안전하게 admin 계정 추가
 
 # -------------------- 로그인 --------------------
 if not st.session_state.logged_in:
