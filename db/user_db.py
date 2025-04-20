@@ -32,6 +32,7 @@ def verify_user(username, password):
 
     if result:
         stored_pw, role = result
-        if bcrypt.checkpw(password.encode(), stored_pw):
+        # ✅ 반드시 encode() 해서 비교
+        if bcrypt.checkpw(password.encode(), stored_pw.encode()):
             return role
     return None
