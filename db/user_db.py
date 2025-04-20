@@ -18,7 +18,7 @@ def init_user_db():
 def add_user(username, password, role):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
-    hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+    hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode("utf-8")
     c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (username, hashed_pw, role))
     conn.commit()
     conn.close()
@@ -32,7 +32,8 @@ def verify_user(username, password):
 
     if result:
         stored_pw, role = result
-        # ✅ 반드시 encode() 해서 비교
-        if bcrypt.checkpw(password.encode(), stored_pw.encode()):
+
+        # 🔽 정확한 비교 방식
+        if bcrypt.checkpw(password.encode(), stored_pw if isinstance(stored_pw, bytes) else stored_pw.encode("utf-8")):
             return role
     return None
