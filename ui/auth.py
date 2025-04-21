@@ -12,9 +12,9 @@ def init_session_state():
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
     if 'user_role' not in st.session_state:
-        st.session_state.user_role = "user"
+        st.session_state.user_role = None
     if 'username' not in st.session_state:
-        st.session_state.username = "guest"
+        st.session_state.username = None
 
 def login_ui():
     if not st.session_state["logged_in"]:
@@ -25,7 +25,6 @@ def login_ui():
             if _check_credentials(username, password):
                 st.session_state["logged_in"] = True
                 st.session_state["username"] = username
-                st.session_state["user_role"] = "admin" if username == "admin" else "user"
                 st.success("로그인 성공!")
             else:
                 st.session_state["logged_in"] = False
