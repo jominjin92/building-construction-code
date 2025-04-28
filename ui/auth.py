@@ -12,9 +12,9 @@ def init_session_state():
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
     if 'user_role' not in st.session_state:
-        st.session_state.user_role = "user"
+        st.session_state.user_role = None
     if 'username' not in st.session_state:
-        st.session_state.username = "guest"
+        st.session_state.username = None
 
 def login_ui():
     if not st.session_state["logged_in"]:
@@ -25,18 +25,20 @@ def login_ui():
             if _check_credentials(username, password):
                 st.session_state["logged_in"] = True
                 st.session_state["username"] = username
-                st.session_state["user_role"] = "admin" if username == "admin" else "user"
                 st.success("로그인 성공!")
             else:
+                st.session_state["logged_in"] = False
+                st.session_state["username"] = None
+                st.session_state["user_role"] = None
                 st.error("사용자 이름이나 비밀번호가 올바르지 않습니다.")
+                st.experimental_rerun()
         st.stop()
 
+from db.user_db import verify_user
+
 def _check_credentials(username, password):
-    credentials = {
-        "admin": "1234",
-        "user1": "pass1",
-        "user2": "pass2",
-        "user3": "pass3",
-        "user4": "pass4"
-    }
-    return credentials.get(username) == password
+    role = verify_user(username, password)
+    if role:
+        st.session_state.user_role = role
+        return True
+    return False
