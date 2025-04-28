@@ -1,6 +1,7 @@
 streamlit==1.44.0
 openai==0.27.2
 pandas
+bcrypt
 schedule
 plotly>=5.0.0
 matplotlib
