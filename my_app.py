@@ -7,6 +7,7 @@ from ui.problem_ui import render_problem_tab
 from ui.admin_ui import render_admin_tab
 from ui.dashboard_ui import render_dashboard_tab
 from db.user_db import init_user_db, add_user
+from ui.lecture_material_ui import render_lecture_material_tab
 import sqlite3
 
 # ✅ admin 계정 존재 시 중복 방지 함수
