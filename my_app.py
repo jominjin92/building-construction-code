@@ -38,7 +38,9 @@ if not st.session_state.logged_in:
 # -------------------- 메인 화면 --------------------
 st.title("🏗 건축시공학 하이브리드 문제풀이 시스템")
 
-tab_problem, tab_admin, tab_dashboard = st.tabs(["📝 문제풀이", "🛠 문제관리 (관리자)", "📊 대시보드"])
+tab_problem, tab_admin, tab_dashboard, tab_lecture_material = st.tabs(
+    ["📝 문제풀이", "🛠 문제관리 (관리자)", "📊 대시보드", "📚 강의자료 관리"]
+)
 
 with tab_problem:
     render_problem_tab()
@@ -51,3 +53,6 @@ with tab_admin:
 
 with tab_dashboard:
     render_dashboard_tab()
+
+with tab_lecture_material:
+    render_lecture_material_tab()
