@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import uuid
+import os
 from db.query import record_attempt, record_feedback
 from db.query import save_result_to_csv
 from db.query import save_problem_to_db
@@ -37,6 +38,15 @@ def keyword_problem_generation_ui():
         if st.button("📁 문제 저장 (CSV)"):
             save_problem_to_csv(st.session_state.generated_problem)
             st.success("문제가 generated_problems.csv 파일에 저장되었습니다.")
+
+    if os.path.exists("generated_problems.csv"):
+        with open("generated_problems.csv", "rb") as f:
+            st.download_button(
+                label="📥 CSV 파일 다운로드",
+                data=f,
+                file_name="generated_problems.csv",
+                mime="text/csv"
+            )
 
 def render_problem_tab():
     st.subheader("문제풀이")
