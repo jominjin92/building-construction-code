@@ -9,6 +9,28 @@ from db.query import load_problems_from_db
 from services.problem_generator import generate_question_by_keyword
 from utils.save_to_csv import save_problem_to_csv
 from services.problem_parser import parse_gpt_problem
+from services.keyword_extractor import extract_keywords_tfidf
+
+keyword_to_chapter = {
+    "가설": "가설공사", "안전펜스": "가설공사", "가림막": "가설공사",
+    "토공": "토공사", "흙막이": "토공사", "절토": "토공사",
+    "기초": "지정 및 기초공사", "지정": "지정 및 기초공사", "말뚝": "지정 및 기초공사",
+    "거푸집": "거푸집공사", "폼타이": "거푸집공사",
+    "철근": "철근공사", "배근": "철근공사", "이음": "철근공사",
+    "콘크리트": "콘크리트공사", "양생": "콘크리트공사", "타설": "콘크리트공사",
+    "철골": "철골공사", "용접": "철골공사",
+    "조적": "조적공사", "벽돌": "조적공사",
+    "방수": "방수공사", "도막": "방수공사",
+    "지붕": "지붕 및 홈통공사", "홈통": "지붕 및 홈통공사",
+    "미장": "미장공사", "몰탈": "미장공사",
+    "타일": "타일 및 돌공사", "석재": "타일 및 돌공사",
+    "창호": "창호 및 유리공사", "유리": "창호 및 유리공사",
+    "금속": "금속공사", "철물": "금속공사",
+    "도장": "도장공사", "페인트": "도장공사",
+    "수장": "수장공사", "내장": "수장공사",
+    "단열": "단열공사", "단열재": "단열공사",
+    "커튼월": "커튼월공사", "알루미늄패널": "커튼월공사"
+}
 
 def keyword_problem_generation_ui():
     st.subheader("🔍 키워드로 문제 생성")
@@ -52,6 +74,49 @@ def keyword_problem_generation_ui():
                 file_name="generated_problems.csv",
                 mime="text/csv"
             )
+
+    st.markdown("---")
+    st.markdown("### 🔍 자동 키워드 추천")
+
+    if st.button("📌 CSV 파일에서 키워드 추출하기"):
+        try:
+            df = pd.read_csv("generated_problems.csv")
+            if not df.empty:
+                keyword_candidates = extract_keywords_tfidf(df["문제"].tolist(), n_keywords=10)
+                st.session_state.keyword_candidates = keyword_candidates
+            else:
+                st.warning("CSV 파일에 문제가 없습니다.")
+        except Exception as e:
+            st.error(f"키워드 추출 실패: {e}")
+
+    if "keyword_candidates" in st.session_state:
+        selected_keywords = st.multiselect("추천 키워드 중 선택", st.session_state.keyword_candidates)
+
+        if st.button("선택한 키워드로 문제 생성"):
+            for keyword in selected_keywords:
+                with st.spinner(f"{keyword} 기반 문제 생성 중..."):
+                    raw_text = generate_question_by_keyword(keyword)
+                    parsed = parse_gpt_problem(raw_text)
+
+                    if parsed["문제"] and len(parsed["선택지"]) == 4 and parsed["정답"]:
+
+                        chapter = keyword_to_chapter.get(keyword, "총론")
+                        problem_data = {
+                            "id": str(uuid.uuid4()),
+                            "문제": parsed["문제"],
+                            "선택지": parsed["선택지"],
+                            "정답": parsed["정답"],
+                            "해설": parsed["해설"],
+                            "문제출처": "GPT 키워드 생성",
+                            "문제형식": "객관식",
+                            "키워드": keyword,
+                            "난이도": "중",
+                            "챕터": chapter
+                        }
+                        save_problem_to_csv(problem_data)
+                        st.success(f"✅ 키워드 [{keyword}] 기반 문제 저장 완료")
+                    else:
+                        st.warning(f"⚠️ [{keyword}] 문제 파싱 실패")
 
 def render_problem_tab():
     st.subheader("문제풀이")
