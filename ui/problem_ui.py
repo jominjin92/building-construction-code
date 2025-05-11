@@ -59,7 +59,11 @@ def render_problem_tab():
 
     with col1:
         st.markdown("### 문제 출처 및 수 선택")
-        selected_source = st.radio("문제 출처 선택", ("건축기사 기출문제", "건축시공 기출문제"))
+        selected_source = st.radio("문제 출처 선택", (
+            "건축기사 기출문제", 
+            "건축시공 기출문제", 
+            "GPT 생성 문제 (CSV)"
+        ))
         num_objective = st.number_input("객관식 문제 수", min_value=1, value=3, step=1)
         num_subjective = 0
         if selected_source == "건축시공 기출문제":
@@ -104,6 +108,29 @@ def render_problem_tab():
                     prob = load_problems_from_db("건축시공 기출문제", "주관식", 1)
                     if prob:
                         st.session_state.problem_list.extend(prob)
+
+            elif selected_source == "GPT 생성 문제 (CSV)":
+                try:
+                    df = pd.read_csv("generated_problems.csv")
+                    if not df.empty:
+                        sampled_df = df.sample(n=min(num_objective, len(df)), random_state=42)
+                        for prob in sampled_df.to_dict(orient='records'):
+                            prob['id'] = str(uuid.uuid4())
+                            prob['선택지'] = [prob.get(f'선택지{i+1}', '') for i in range(4)]
+                            prob['문제출처'] = "GPT 키워드 생성"
+                            prob['문제형식'] = "객관식"
+                            prob['정답'] = str(prob.get('정답', ''))
+                            prob['해설'] = prob.get('해설', '')
+
+                            st.session_state.problem_list.append(prob)
+
+                        st.success(f"GPT 생성 문제 {len(st.session_state.problem_list)}개 불러오기 완료!")
+                    else:
+                        st.warning("CSV 파일이 비어 있습니다.")
+                except FileNotFoundError:
+                    st.error("CSV 파일이 존재하지 않습니다.")
+                except Exception as e:
+                    st.error(f"문제 로딩 오류: {e}")
 
     with col2:
         if st.session_state.get("show_problems", False):
