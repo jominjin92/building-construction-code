@@ -2,6 +2,8 @@ import openai
 import json
 import logging
 
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+
 # GPT 문제 생성
 def generate_openai_problem(question_type, problem_source):
     if question_type == "객관식":
