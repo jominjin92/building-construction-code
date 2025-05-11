@@ -8,6 +8,7 @@ from db.query import save_problem_to_db
 from db.query import load_problems_from_db
 from services.problem_generator import generate_question_by_keyword
 from utils.save_to_csv import save_problem_to_csv
+from services.problem_parser import parse_gpt_problem
 
 def keyword_problem_generation_ui():
     st.subheader("🔍 키워드로 문제 생성")
@@ -21,18 +22,22 @@ def keyword_problem_generation_ui():
             st.success("문제가 생성되었습니다.")
             st.text_area("생성된 문제 (원문)", value=raw_text, height=200)
 
-            # 예시 문제: 실제 적용 시 GPT 응답 파싱 결과로 대체
-            st.session_state.generated_problem = {
-                "id": str(uuid.uuid4()),
-                "문제": "콘크리트의 양생 온도로 적절한 것은?",
-                "선택지": ["0~5도", "10~15도", "20~25도", "30~35도"],
-                "정답": "3",
-                "해설": "20~25도가 적절한 양생 온도입니다.",
-                "문제출처": "GPT 키워드 생성",
-                "문제형식": "객관식",
-                "키워드": keyword,
-                "난이도": 난이도
-            }
+            parsed = parse_gpt_problem(raw_text)
+
+            if parsed["문제"] and len(parsed["선택지"]) == 4 and parsed["정답"]:
+                st.session_state.generated_problem = {
+                    "id": str(uuid.uuid4()),
+                    "문제": parsed["문제"],
+                    "선택지": parsed["선택지"],
+                    "정답": parsed["정답"],
+                    "해설": parsed["해설"],
+                    "문제출처": "GPT 키워드 생성",
+                    "문제형식": "객관식",
+                    "키워드": keyword,
+                    "난이도": 난이도
+                }
+            else:
+                st.error("⚠️ 문제 파싱에 실패했습니다. 생성된 텍스트 형식을 확인해 주세요.")
 
     if "generated_problem" in st.session_state:
         if st.button("📁 문제 저장 (CSV)"):
