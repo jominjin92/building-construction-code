@@ -6,6 +6,7 @@ from db.query import save_result_to_csv
 from db.query import save_problem_to_db
 from db.query import load_problems_from_db
 from services.problem_generator import generate_question_by_keyword
+from utils.save_to_csv import save_problem_to_csv
 
 def keyword_problem_generation_ui():
     st.subheader("🔍 키워드로 문제 생성")
