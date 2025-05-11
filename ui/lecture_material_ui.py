@@ -1,28 +1,10 @@
 import streamlit as st
-import datetime
+from db.lecture_material_db import init_lecture_materials_db, add_lecture_material, get_lecture_materials_by_week, delete_lecture_material
 
-# session_state 초기화
-def init_session():
-    if 'lecture_files' not in st.session_state:
-        st.session_state['lecture_files'] = {week: [] for week in range(1, 16)}
-
-# 파일 업로드 핸들링 함수
-def handle_upload(week, uploaded_files):
-    for uploaded_file in uploaded_files:
-        timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
-        st.session_state['lecture_files'][week].append({
-            'filename': uploaded_file.name,
-            'timestamp': timestamp
-        })
-
-# 파일 삭제 핸들링 함수
-def handle_delete(week, index):
-    if 0 <= index < len(st.session_state['lecture_files'][week]):
-        del st.session_state['lecture_files'][week][index]
+# DB 초기화
+init_lecture_materials_db()
 
 def render_lecture_material_tab():
-    init_session()
-
     st.title('주차별 강의자료 관리')
 
     for week in range(1, 16):
@@ -32,20 +14,27 @@ def render_lecture_material_tab():
                 accept_multiple_files=True,
                 key=f"uploader_{week}"
             )
-            if uploaded_files:
-                handle_upload(week, uploaded_files)
 
-            # 업로드된 파일 목록 보여주기
-            if st.session_state['lecture_files'][week]:
-                for idx, file_info in enumerate(st.session_state['lecture_files'][week]):
+            if uploaded_files:
+                for uploaded_file in uploaded_files:
+                    add_lecture_material(week, uploaded_file.name)
+                    st.success(f"'{uploaded_file.name}' 업로드 완료!")
+                st.experimental_rerun()
+
+            materials = get_lecture_materials_by_week(week)
+
+            if materials:
+                for material in materials:
+                    material_id, filename, upload_time = material
                     col1, col2, col3 = st.columns([6, 3, 1])
                     with col1:
-                        st.write(f"{file_info['filename']}")
+                        st.write(filename)
                     with col2:
-                        st.write(f"업로드: {file_info['timestamp']}")
+                        st.write(f"업로드: {upload_time}")
                     with col3:
-                        if st.button("삭제", key=f"delete_{week}_{idx}"):
-                            handle_delete(week, idx)
+                        if st.button("삭제", key=f"delete_{week}_{material_id}"):
+                            delete_lecture_material(material_id)
+                            st.success(f"'{filename}' 삭제 완료!")
                             st.experimental_rerun()
             else:
                 st.write("등록된 자료가 없습니다.")

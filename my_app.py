@@ -8,6 +8,7 @@ from ui.admin_ui import render_admin_tab
 from ui.dashboard_ui import render_dashboard_tab
 from db.user_db import init_user_db, add_user
 from ui.lecture_material_ui import render_lecture_material_tab
+from ui.problem_ui import keyword_problem_generation_ui
 import sqlite3
 
 # ✅ admin 계정 존재 시 중복 방지 함수
@@ -38,12 +39,15 @@ if not st.session_state.logged_in:
 # -------------------- 메인 화면 --------------------
 st.title("🏗 건축시공학 하이브리드 문제풀이 시스템")
 
-tab_problem, tab_admin, tab_dashboard, tab_lecture_material = st.tabs(
-    ["📝 문제풀이", "🛠 문제관리 (관리자)", "📊 대시보드", "📚 강의자료 관리"]
+tab_problem, tab_keyword, tab_admin, tab_dashboard, tab_lecture_material = st.tabs(
+    ["📝 문제풀이", "🧠 키워드 문제 생성", "🛠 문제관리 (관리자)", "📊 대시보드", "📚 강의자료 관리"]
 )
 
 with tab_problem:
     render_problem_tab()
+
+with tab_keyword:
+    keyword_problem_generation_ui()
 
 with tab_admin:
     if st.session_state.user_role == "admin":

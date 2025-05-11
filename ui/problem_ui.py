@@ -5,6 +5,20 @@ from db.query import record_attempt, record_feedback
 from db.query import save_result_to_csv
 from db.query import save_problem_to_db
 from db.query import load_problems_from_db
+from services.problem_generator import generate_question_by_keyword
+
+def keyword_problem_generation_ui():
+    st.subheader("🔍 키워드로 문제 생성")
+    keyword = st.text_input("문제 생성을 원하는 키워드를 입력하세요")
+
+    if st.button("문제 생성"):
+        if keyword:
+            with st.spinner("문제를 생성 중입니다..."):
+                result = generate_question_by_keyword(keyword)
+            st.success("문제가 성공적으로 생성되었습니다.")
+            st.text_area("생성된 문제", value=result, height=250)
+        else:
+            st.warning("키워드를 입력해 주세요.")
 
 def render_problem_tab():
     st.subheader("문제풀이")

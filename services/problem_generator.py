@@ -117,3 +117,23 @@ def generate_question_from_lecture(lecture_text):
     except Exception as e:
         logging.error(f"강의자료 기반 문제 생성 오류: {e}")
         return None
+
+def generate_question_by_keyword(keyword: str) -> dict:
+    prompt = f"""
+    아래 키워드와 관련된 건축시공학 분야의 객관식 문제를 1개 생성해줘.
+    - 키워드: {keyword}
+    - 형식: 문제, 선택지 4개, 정답, 해설
+    - 형식 예시:
+    Q: 콘크리트의 압축강도는 무엇을 의미하는가?
+    A. 인장강도  B. 휨강도  C. 압축에 대한 저항력  D. 전단강도
+    정답: C
+    해설: 압축강도는 콘크리트가 압축 하중에 견디는 능력을 의미한다.
+    """
+
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7,
+        max_tokens=500
+    )
+    return response.choices[0].message.content.strip()
